@@ -168,10 +168,12 @@
 
    tx-instant
    {ident :db/txInstant
+    index true
     doc "Attribute whose value is a :db.type/instant. A :db/txInstant is recorded automatically with every transaction."}
 
    doc
    {ident :db/doc
+    fulltext true
     doc "Documentation string for an entity."}})
 
 (def system-keys (into {} (map (fn [[k attrs]]
