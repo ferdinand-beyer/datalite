@@ -1,6 +1,7 @@
 (ns datalite.bootstrap
   "Bootstrap a Datalite datbase."
-  (:require [datalite.schema :as schema])
+  (:require [datalite.jdbc :as jdbc]
+            [datalite.schema :as schema])
   (:import [java.sql Connection]))
 
 (def initial-s 100)
@@ -37,13 +38,15 @@
 
 (defn- sqlite-exists?
   [^Connection conn type name]
-  (let [sql "SELECT COUNT(*) FROM sqlite_master WHERE type = ? AND name = ?"]
-    (with-open [stmt (.prepareStatement conn sql)]
+  (with-open [stmt (.prepareStatement
+                       conn
+                       (jdbc/s "SELECT COUNT(*) FROM sqlite_master"
+                               " WHERE type = ? AND name = ?"))]
       (.setString stmt 1 type)
       (.setString stmt 2 name)
       (with-open [rs (.executeQuery stmt)]
         (.next rs)
-        (pos? (.getInt rs 1))))))
+        (pos? (.getInt rs 1)))))
 
 (defn- table-exists?
   "Returns true if a table with name table-name exists in conn."
@@ -64,7 +67,9 @@
 
 (defn- get-meta
   [^Connection conn meta-key]
-  (with-open [stmt (.prepareStatement conn "SELECT v FROM meta WHERE k = ?")]
+  (with-open [stmt (.prepareStatement
+                     conn
+                     "SELECT v FROM meta WHERE k = ?")]
     (.setString stmt 1 (str meta-key))
     (with-open [rs (.executeQuery stmt)]
       (when (.next rs)
@@ -81,14 +86,18 @@
 
 (defn bootstrap-meta
   [^Connection conn]
-  (with-open [stmt (.prepareStatement conn "INSERT INTO meta (k, v) VALUES (?, ?)")]
+  (with-open [stmt (.prepareStatement
+                     conn
+                     "INSERT INTO meta (k, v) VALUES (?, ?)")]
     (.setString stmt 1 (str :datalite/schema-version))
     (.setInt stmt 2 schema-version)
     (.executeUpdate stmt)))
 
 (defn bootstrap-seq
   [^Connection conn]
-  (with-open [stmt (.prepareStatement conn "INSERT INTO seq (s, t) VALUES (?, ?)")]
+  (with-open [stmt (.prepareStatement
+                     conn
+                     "INSERT INTO seq (s, t) VALUES (?, ?)")]
     (.setInt stmt 1 initial-s)
     (.setInt stmt 2 initial-t)
     (.executeUpdate stmt)))
