@@ -55,6 +55,8 @@
   (sqlite-exists? conn "table" table-name))
 
 (defn schema-exists?
+  "Returns true if it looks like a Datalite schema exists in
+  the SQLite database."
   [conn]
   (table-exists? conn "meta"))
 
@@ -67,6 +69,8 @@
     (.executeBatch stmt)))
 
 (defn- get-meta
+  "Returns a value from the meta database table for the
+  given meta-key."
   [^Connection conn meta-key]
   (with-open [stmt (.prepareStatement
                      conn
@@ -77,6 +81,8 @@
         (.getObject rs 1)))))
 
 (defn valid-version?
+  "Returns true if the schema version in the SQLite database
+  is valid."
   [conn]
   (= schema-version (get-meta conn :datalite/schema-version)))
 
@@ -86,6 +92,7 @@
        (valid-version? conn)))
 
 (defn bootstrap-meta
+  "Bootstrap meta data."
   [^Connection conn]
   (with-open [stmt (.prepareStatement
                      conn
@@ -95,6 +102,7 @@
     (.executeUpdate stmt)))
 
 (defn bootstrap-seq
+  "Bootstrap initial sequence values."
   [^Connection conn]
   (with-open [stmt (.prepareStatement
                      conn
@@ -104,6 +112,8 @@
     (.executeUpdate stmt)))
 
 (defn avet?
+  "Return true if a datom for a shall be added to the
+  AVET index."
   [a]
   (let [attr (get schema/system-attributes a)]
     (boolean
@@ -111,11 +121,14 @@
           (get attr schema/unique)))))
 
 (defn vaet?
+  "Return true if a datom for a shall be added to the
+  VAET index."
   [a]
   (= schema/type-ref
      (get-in schema/system-attributes [a schema/value-type])))
 
 (defn system-datoms
+  "Returns a sequence of system datoms."
   []
   (mapcat (fn [[e attrs]]
             (map (fn [[a v]]
@@ -124,10 +137,12 @@
           schema/system-attributes))
 
 (defn boot-tx-datoms
+  "Returns a sequence of datoms for the bootstrap transaction."
   []
   [[(id/eid schema/part-tx 0) schema/tx-instant 0]])
 
 (defn bootstrap-data
+  "Insert boot datoms into the data table."
   [^Connection conn]
   (let [datoms (concat (system-datoms) (boot-tx-datoms))
         ta 0
@@ -149,6 +164,7 @@
           (.executeUpdate))))))
 
 (defn bootstrap
+  "Bootstrap an empty SQLite database."
   [conn]
   (doto conn
     (create-schema)

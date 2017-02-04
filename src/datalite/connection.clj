@@ -20,6 +20,8 @@
     (.close conn)))
 
 (defn connect
+  "Connects to the specified database file, or a in-memory
+  database if no file is given."
   ([]
    (let [conn (sqlite-connect ":memory:")]
      (jdbc/with-tx conn
@@ -37,6 +39,7 @@
      (->DataliteConnection conn))))
 
 (defn close
+  "Closes the given connection."
   [^DataliteConnection conn]
   (.close conn))
 
