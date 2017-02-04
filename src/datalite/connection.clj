@@ -1,10 +1,9 @@
 (ns datalite.connection
   (:require [datalite.bootstrap :as boot]
             [datalite.jdbc :as jdbc])
-  (:import [java.sql Connection]
-           [org.sqlite SQLiteConfig SQLiteConfig$TransactionMode]))
+  (:import [org.sqlite SQLiteConfig SQLiteConfig$TransactionMode]))
 
-(defn- sqlite-config
+(defn- ^SQLiteConfig sqlite-config
   []
   (doto (SQLiteConfig.)
     (.setTransactionMode SQLiteConfig$TransactionMode/IMMEDIATE)))

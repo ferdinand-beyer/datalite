@@ -7,15 +7,16 @@
   do.  If exprs succeed without exception, commits conn.
   Otherwise, rolls conn back.  Either way, sets conn back to
   auto-commit mode."
-  [^Connection conn & exprs]
-  `(do
-     (.setAutoCommit ~conn false)
-     (try
-       ~@exprs
-       (.commit ~conn)
-       (catch Exception e#
-         (.rollback ~conn)
-         (throw e#))
-       (finally
-         (.setAutoCommit ~conn true)))))
+  [conn & exprs]
+  (let [conn (vary-meta conn assoc :tag `Connection)]
+    `(do
+       (.setAutoCommit ~conn false)
+       (try
+         ~@exprs
+         (.commit ~conn)
+         (catch Exception e#
+           (.rollback ~conn)
+           (throw e#))
+         (finally
+           (.setAutoCommit ~conn true))))))
 

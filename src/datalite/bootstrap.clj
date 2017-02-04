@@ -80,14 +80,14 @@
        (valid-version? conn)))
 
 (defn bootstrap-meta
-  [conn]
+  [^Connection conn]
   (with-open [stmt (.prepareStatement conn "INSERT INTO meta (k, v) VALUES (?, ?)")]
     (.setString stmt 1 (str :datalite/schema-version))
     (.setInt stmt 2 schema-version)
     (.executeUpdate stmt)))
 
 (defn bootstrap-seq
-  [conn]
+  [^Connection conn]
   (with-open [stmt (.prepareStatement conn "INSERT INTO seq (s, t) VALUES (?, ?)")]
     (.setInt stmt 1 initial-s)
     (.setInt stmt 2 initial-t)
