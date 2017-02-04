@@ -1,6 +1,7 @@
 (ns datalite.bootstrap
   "Bootstrap a Datalite datbase."
-  (:require [datalite.jdbc :as jdbc]
+  (:require [datalite.id :as id]
+            [datalite.jdbc :as jdbc]
             [datalite.schema :as schema])
   (:import [java.sql Connection]))
 
@@ -46,7 +47,7 @@
       (.setString stmt 2 name)
       (with-open [rs (.executeQuery stmt)]
         (.next rs)
-        (pos? (.getInt rs 1)))))
+        (pos? (.getLong rs 1)))))
 
 (defn- table-exists?
   "Returns true if a table with name table-name exists in conn."
@@ -90,7 +91,7 @@
                      conn
                      "INSERT INTO meta (k, v) VALUES (?, ?)")]
     (.setString stmt 1 (str :datalite/schema-version))
-    (.setInt stmt 2 schema-version)
+    (.setLong stmt 2 schema-version)
     (.executeUpdate stmt)))
 
 (defn bootstrap-seq
@@ -98,14 +99,60 @@
   (with-open [stmt (.prepareStatement
                      conn
                      "INSERT INTO seq (s, t) VALUES (?, ?)")]
-    (.setInt stmt 1 initial-s)
-    (.setInt stmt 2 initial-t)
+    (.setLong stmt 1 initial-s)
+    (.setLong stmt 2 initial-t)
     (.executeUpdate stmt)))
+
+(defn avet?
+  [a]
+  (let [attr (get schema/system-attributes a)]
+    (boolean
+      (or (get attr schema/index)
+          (get attr schema/unique)))))
+
+(defn vaet?
+  [a]
+  (= schema/type-ref
+     (get-in schema/system-attributes [a schema/value-type])))
+
+(defn system-datoms
+  []
+  (mapcat (fn [[e attrs]]
+            (map (fn [[a v]]
+                   [e a v])
+                 attrs))
+          schema/system-attributes))
+
+(defn boot-tx-datoms
+  []
+  [[(id/eid schema/part-tx 0) schema/tx-instant 0]])
+
+(defn bootstrap-data
+  [conn]
+  (let [datoms (concat (system-datoms) (boot-tx-datoms))
+        ta 0
+        tr id/max-t]
+    (with-open [stmt (.prepareStatement
+                       conn
+                       (jdbc/s "INSERT INTO data"
+                               " (e, a, v, ta, tr, avet, vaet)"
+                               " VALUES (?, ?, ?, ?, ?, ?, ?)"))]
+      (doseq [[e a v] datoms]
+        (doto stmt
+          (.setLong 1 e)
+          (.setLong 2 a)
+          (.setObject 3 v)
+          (.setLong 4 ta)
+          (.setLong 5 tr)
+          (.setBoolean 6 (avet? a))
+          (.setBoolean 7 (vaet? a))
+          (.executeUpdate))))))
 
 (defn bootstrap
   [conn]
   (doto conn
     (create-schema)
     (bootstrap-meta)
-    (bootstrap-seq)))
+    (bootstrap-seq)
+    (bootstrap-data)))
 

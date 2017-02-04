@@ -47,7 +47,7 @@
       (with-open [stmt (.createStatement conn)
                   rs (.executeQuery stmt "SELECT * FROM seq")]
         (is (true? (.next rs)))
-        (is (> (.getInt rs 1) max-system-id))
-        (is (= 1000 (.getInt rs 2)))
+        (is (> (.getLong rs 1) max-system-id))
+        (is (= 1000 (.getLong rs 2)))
         (is (false? (.next rs)))))))
 

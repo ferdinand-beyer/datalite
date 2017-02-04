@@ -33,5 +33,7 @@
 
 (defn close
   [^DataliteConnection conn]
-  (.close conn))
+  (let [c (.conn conn)]
+    (.close c)
+    (.isClosed c)))
 

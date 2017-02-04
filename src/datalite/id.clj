@@ -1,11 +1,11 @@
 (ns datalite.id
   "Manage entity ids.")
 
-(def ^:private part-bits 21)
-(def ^:private t-bits 42)
+(def t-bits 42)
+(def part-bits 21)
 
-(def ^:private max-t (dec (bit-shift-left 1 t-bits)))
-(def ^:private max-part (dec (bit-shift-left 1 part-bits)))
+(def max-t (dec (bit-shift-left 1 t-bits)))
+(def max-part (dec (bit-shift-left 1 part-bits)))
 
 (def ^:private part-mask (bit-shift-left max-part t-bits))
 (def ^:private t-mask (bit-not part-mask))
