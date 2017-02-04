@@ -28,13 +28,15 @@
   ([filename]
    (let [conn (sqlite-connect filename)]
      (jdbc/with-tx conn
-       ; TODO: Check schema!
-       (boot/bootstrap conn))
+       (if (boot/schema-exists? conn)
+         (when-not (boot/valid-version? conn)
+           (throw (ex-info "Unsupported schema in existing database"
+                           {:cause :db.error/unsupported-schema
+                            :filename filename})))
+         (boot/bootstrap conn)))
      (->DataliteConnection conn))))
 
 (defn close
   [^DataliteConnection conn]
-  (let [^Connection c (.conn conn)]
-    (.close c)
-    (.isClosed c)))
+  (.close conn))
 
