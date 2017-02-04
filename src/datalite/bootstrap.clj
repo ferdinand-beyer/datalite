@@ -128,7 +128,7 @@
   [[(id/eid schema/part-tx 0) schema/tx-instant 0]])
 
 (defn bootstrap-data
-  [conn]
+  [^Connection conn]
   (let [datoms (concat (system-datoms) (boot-tx-datoms))
         ta 0
         tr id/max-t]

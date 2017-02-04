@@ -1,7 +1,8 @@
 (ns datalite.connection
   (:require [datalite.bootstrap :as boot]
             [datalite.jdbc :as jdbc])
-  (:import [org.sqlite SQLiteConfig SQLiteConfig$TransactionMode]))
+  (:import [java.sql Connection]
+           [org.sqlite SQLiteConfig SQLiteConfig$TransactionMode]))
 
 (defn- ^SQLiteConfig sqlite-config
   []
@@ -13,7 +14,7 @@
   (.createConnection (sqlite-config)
                      (str "jdbc:sqlite:" filename)))
 
-(deftype DataliteConnection [^java.sql.Connection conn]
+(deftype DataliteConnection [^Connection conn]
   java.lang.AutoCloseable
   (close [this]
     (.close conn)))
@@ -33,7 +34,7 @@
 
 (defn close
   [^DataliteConnection conn]
-  (let [c (.conn conn)]
+  (let [^Connection c (.conn conn)]
     (.close c)
     (.isClosed c)))
 
