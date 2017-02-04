@@ -20,9 +20,3 @@
          (finally
            (.setAutoCommit ~conn true))))))
 
-(defmacro s
-  "Concatenates strings at compile time. Useful for embedding
-  lengthy SQL into code."
-  [& strings]
-  (apply str strings))
-

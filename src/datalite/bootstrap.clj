@@ -2,7 +2,8 @@
   "Bootstrap a Datalite datbase."
   (:require [datalite.id :as id]
             [datalite.jdbc :as jdbc]
-            [datalite.schema :as schema])
+            [datalite.schema :as schema]
+            [datalite.util :refer [s]])
   (:import [java.sql Connection]))
 
 (def initial-s 100)
@@ -41,8 +42,8 @@
   [^Connection conn type name]
   (with-open [stmt (.prepareStatement
                        conn
-                       (jdbc/s "SELECT COUNT(*) FROM sqlite_master"
-                               " WHERE type = ? AND name = ?"))]
+                       (s "SELECT COUNT(*) FROM sqlite_master"
+                          " WHERE type = ? AND name = ?"))]
       (.setString stmt 1 type)
       (.setString stmt 2 name)
       (with-open [rs (.executeQuery stmt)]
@@ -149,9 +150,9 @@
         tr id/max-t]
     (with-open [stmt (.prepareStatement
                        conn
-                       (jdbc/s "INSERT INTO data"
-                               " (e, a, v, ta, tr, avet, vaet)"
-                               " VALUES (?, ?, ?, ?, ?, ?, ?)"))]
+                       (s "INSERT INTO data"
+                          " (e, a, v, ta, tr, avet, vaet)"
+                          " VALUES (?, ?, ?, ?, ?, ?, ?)"))]
       (doseq [[e a v] datoms]
         (doto stmt
           (.setLong 1 e)
