@@ -1,6 +1,7 @@
 (ns datalite.connection
   (:require [datalite.bootstrap :as boot]
-            [datalite.sql :as sql])
+            [datalite.sql :as sql]
+            [datalite.util :as util])
   (:import [java.sql Connection]
            [org.sqlite SQLiteConfig SQLiteConfig$TransactionMode]))
 
@@ -36,9 +37,9 @@
      (sql/with-tx conn
        (if (boot/schema-exists? conn)
          (when-not (boot/valid-version? conn)
-           (throw (ex-info "Unsupported schema in existing database"
-                           {:cause :db.error/unsupported-schema
-                            :filename filename})))
+           (util/throw-error :db.error/unsupported-schema
+                             "Unsupported schema in existing database"
+                             {:filename filename}))
          (boot/bootstrap conn)))
      (->DbConnection conn))))
 
