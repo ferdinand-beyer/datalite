@@ -1,4 +1,5 @@
-(ns datalite.jdbc
+(ns datalite.sql
+  "JDBC helpers."
   (:import [java.sql Connection]))
 
 (defmacro with-tx

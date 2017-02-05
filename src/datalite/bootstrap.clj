@@ -1,7 +1,6 @@
 (ns datalite.bootstrap
   "Bootstrap a Datalite datbase."
   (:require [datalite.id :as id]
-            [datalite.jdbc :as jdbc]
             [datalite.schema :as schema]
             [datalite.util :refer [s]])
   (:import [java.sql Connection]))
@@ -17,7 +16,7 @@
       v NOT NULL
     )"
 
-    "CREATE TABLE seq (
+    "CREATE TABLE head (
       s INTEGER NOT NULL,
       t INTEGER NOT NULL
     )"
@@ -102,12 +101,12 @@
     (.setLong stmt 2 schema-version)
     (.executeUpdate stmt)))
 
-(defn bootstrap-seq
-  "Bootstrap initial sequence values."
+(defn bootstrap-head
+  "Bootstrap initial head values."
   [^Connection conn]
   (with-open [stmt (.prepareStatement
                      conn
-                     "INSERT INTO seq (s, t) VALUES (?, ?)")]
+                     "INSERT INTO head (s, t) VALUES (?, ?)")]
     (.setLong stmt 1 initial-s)
     (.setLong stmt 2 initial-t)
     (.executeUpdate stmt)))
@@ -170,6 +169,6 @@
   (doto conn
     (create-schema)
     (bootstrap-meta)
-    (bootstrap-seq)
+    (bootstrap-head)
     (bootstrap-data)))
 

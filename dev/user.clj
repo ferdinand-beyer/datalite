@@ -9,3 +9,29 @@
             [clojure.tools.namespace.repl :refer [refresh refresh-all]]
             [datalite.api :as d]))
 
+(def conn nil)
+(def db nil)
+
+(defn refresh-db
+  []
+  (alter-var-root #'db (fn [db] (d/db conn))))
+
+(defn start
+  []
+  (alter-var-root #'conn
+                  (constantly (d/connect)))
+  (refresh-db)
+  :ok)
+
+(defn stop
+  []
+  (alter-var-root #'conn
+                  (fn [conn] (when conn (d/close conn))))
+  (alter-var-root #'db (constantly nil))
+  :ok)
+
+(defn reset
+  []
+  (stop)
+  (refresh :after 'user/start))
+

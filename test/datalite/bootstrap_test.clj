@@ -36,16 +36,16 @@
     (bootstrap-meta conn)
     (is (true? (valid-version? conn)))))
 
-(deftest initial-seq-numbers-test
+(deftest initial-head-numbers-test
   (let [conn (memory-connection)]
     (create-schema conn)
     (with-open [stmt (.createStatement conn)
-                rs (.executeQuery stmt "SELECT * FROM seq")]
+                rs (.executeQuery stmt "SELECT * FROM head")]
       (is (false? (.next rs))))
-    (bootstrap-seq conn)
+    (bootstrap-head conn)
     (let [max-system-id (apply max (vals system-ids))]
       (with-open [stmt (.createStatement conn)
-                  rs (.executeQuery stmt "SELECT * FROM seq")]
+                  rs (.executeQuery stmt "SELECT * FROM head")]
         (is (true? (.next rs)))
         (is (> (.getLong rs 1) max-system-id))
         (is (= 1000 (.getLong rs 2)))

@@ -1,6 +1,7 @@
 (ns datalite.api
   (:refer-clojure :exclude [filter])
-  (:require [datalite.connection :as conn]))
+  (:require [datalite.connection :as conn]
+            [datalite.database :as db]))
 
 ; TODO: Decide for each API function whether to support it, and
 ; give a reason if not/never.
@@ -16,7 +17,12 @@
 (def connect conn/connect)
 ;(def create-database)
 (def datoms)
-(def db)
+
+(defn db
+  "Retrieves a value of the database for reading."
+  [conn]
+  (db/db conn))
+
 ;(def delete-database)
 (def entid)
 (def entid-at)
