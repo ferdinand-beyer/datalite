@@ -1,5 +1,5 @@
 (ns datalite.bootstrap
-  "Bootstrap a Datalite datbase."
+  "Bootstrap a SQLite database for Datalite."
   (:require [datalite.id :as id]
             [datalite.schema :as schema]
             [datalite.util :refer [s]])
