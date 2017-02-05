@@ -28,5 +28,6 @@
     (is (thrown? clojure.lang.ExceptionInfo
                  (entity-id db [:db/valueType :db.type/keyword])))
     (is (= schema/part-db (entity-id db [:db/ident :db.part/db])))
-    (is (= schema/part-db (entity-id db [schema/ident :db.part/db])))))
+    (is (= schema/part-db (entity-id db [schema/ident :db.part/db])))
+    (is (= schema/part-db (entity-id db [[:db/ident :db/ident] :db.part/db])))))
 
