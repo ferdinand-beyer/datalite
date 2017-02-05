@@ -24,6 +24,10 @@
   ([conn basis-t]
    (->Database conn basis-t)))
 
+(defn basis-t
+  [^Database db]
+  (.basis-t db))
+
 (defn ^Connection sql-conn
   "Returns the SQL connection from db."
   [^Database db]
@@ -111,30 +115,30 @@
 ;;;; Entity Identifier
 
 (defprotocol Identifier
-  (-entity-id [x db]))
+  (-resolve-id [x db]))
 
-(defn entity-id
+(defn resolve-id
   "Returns the entity id for an entity identifier."
   [db identifier]
-  (-entity-id identifier db))
+  (-resolve-id identifier db))
 
 (extend-protocol Identifier
   Long
-  (-entity-id [n db]
+  (-resolve-id [n db]
     (when (entity? db n) n))
 
   clojure.lang.Keyword
-  (-entity-id [kwd db]
+  (-resolve-id [kwd db]
     (ident->eid db kwd))
 
   clojure.lang.Sequential
-  (-entity-id [lookup-ref db]
+  (-resolve-id [lookup-ref db]
     (when-not (and (= 2 (count lookup-ref)))
       (util/throw-error :db.error/invalid-lookup-ref
                         "lookup refs must be vectors with exactly 2 elements"
                         {:val lookup-ref}))
     (let [[attr v] lookup-ref
-          a (-entity-id attr db)]
+          a (-resolve-id attr db)]
       (when-not a
         (util/throw-error :db.error/invalid-lookup-ref
                           "unknown attribute"

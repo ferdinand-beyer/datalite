@@ -14,7 +14,6 @@
        (.setAutoCommit ~conn false)
        (try
          ~@exprs
-         (.commit ~conn)
          (catch Exception e#
            (.rollback ~conn)
            (throw e#))

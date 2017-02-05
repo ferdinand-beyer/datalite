@@ -228,8 +228,8 @@
     fulltext true
     doc "Documentation string for an entity."}})
 
-(def system-keys (into {} (map (fn [[k attrs]]
-                                 [k (get attrs ident)])
+(def system-keys (into {} (map (fn [[id attrs]]
+                                 [id (get attrs ident)])
                                system-attributes)))
 
 (def system-ids (map-invert system-keys))
