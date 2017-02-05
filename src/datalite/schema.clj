@@ -234,3 +234,22 @@
 
 (def system-ids (map-invert system-keys))
 
+(defn attr-info
+  ([id]
+   (when-let [attrs (get system-attributes id)]
+     (attr-info id attrs)))
+  ([id attrs]
+   (when-let [vt (get attrs value-type)]
+     {:id id
+      :ident (get attrs ident)
+      :cardinality (get system-keys (get attrs cardinality))
+      :value-type (get system-keys vt)
+      :unique (when-let [u (get attrs unique)]
+                (get system-keys u))
+      :indexed (get attrs index false)
+      :has-avet (boolean (or (get attrs index)
+                             (get attrs unique)))
+      :no-history (get attrs no-history false)
+      :is-component (get attrs is-component false)
+      :fulltext (get attrs fulltext false)})))
+
