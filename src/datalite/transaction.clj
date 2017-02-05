@@ -85,7 +85,8 @@
 
 (defn- attr?
   [am]
-  (and (contains? am schema/value-type)
+  (and (contains? am schema/ident)
+       (contains? am schema/value-type)
        (contains? am schema/cardinality)))
 
 (defn- resolve-attr
@@ -103,9 +104,9 @@
 ;;;; Transaction data transducers
 
 (defn invoke-transaction-fns
+  "Transducer invoking transaction functions."
   [xform]
   (fn
-    ([] (xform))
     ([tx] (xform tx))
     ([tx form]
      ; TODO: if list form (sequential?), and first value
@@ -135,9 +136,8 @@
        (xform tx form)))))
 
 (defn check-base-ops
-  "Transducer checking list forms to match a basic
-  operation [op e a v] with op being :db/add or
-  :db/retract."
+  "Transducer checking list forms of a basic
+  operation: [(:db/add | :db/retract) e a v]."
   [xform]
   (fn
     ([tx] (xform tx))
@@ -218,20 +218,19 @@
 ; * Check for temporary ids on the tx partition (used for the tx entity)
 ; * Determine transaction id
 ; * Generate forms for a new transaction
-; * Resolve attribute entity ids (+ lookup schema)
 ; * Check/convert value types
 ; * Resolve ref entity ids
 ; * Check unique identities
 ; * Check cardinality
 ; * Generate retract forms for existing cardinality-one datoms
+; * Check existing datoms for :db/retract, including id (don't allow
+;   tempid)
 ; * Generate multiple forms if a vector is given for a multi-value
 ;   attribute
 ; * Expand nested map forms for ref attributes (generate ids in the parent
 ;   entity's partition, constrain on component or unique like Datomic?)
-; * Resolve entity ids
 ; * Check any supplied value for :db/txInstant (newer than every existing
 ;   value, older than current time)
-; * Verify all entity ids exist
 ; * Prevent transactions on system entities
 ; * Generate missing install datoms for attributes
 ; * Check required schema entities: ident, valueType, cardinality
@@ -247,3 +246,6 @@
 ; * Normalize to list form
 ; * Assign implicit temporary entity ids
 ; * Normalize reverse references (`[e :_a v] -> [v :a e]`)
+; * Resolve attribute entity ids (+ lookup schema)
+; * Resolve entity ids
+; * Verify all entity ids exist
