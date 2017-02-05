@@ -127,7 +127,7 @@
   (-entity-id [kwd db]
     (ident->eid db kwd))
 
-  clojure.lang.IPersistentVector
+  clojure.lang.Sequential
   (-entity-id [lookup-ref db]
     (when-not (and (= 2 (count lookup-ref)))
       (util/throw-error :db.error/invalid-lookup-ref
