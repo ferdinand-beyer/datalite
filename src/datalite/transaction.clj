@@ -105,14 +105,14 @@
 
 (defn invoke-transaction-fns
   "Transducer invoking transaction functions."
-  [xform]
+  [rf]
   (fn
-    ([tx] (xform tx))
+    ([tx] (rf tx))
     ([tx form]
      ; TODO: if list form (sequential?), and first value
      ; is neither :db/add nor :db/retract, look up function,
      ; check, call and recur for every returned form.
-     (xform tx form))))
+     (rf tx form))))
 
 (defn- map-form-e
   "Determine the entity id of a map structure."
@@ -123,67 +123,63 @@
 
 (defn expand-map-forms
   "Transducer expanding map forms to list forms."
-  [xform]
+  [rf]
   (fn
-    ([tx] (xform tx))
+    ([tx] (rf tx))
     ([tx form]
      (if (map? form)
        (let [[tx m e] (map-form-e tx form)]
          (reduce-kv (fn [tx a v]
-                      (xform tx [:db/add e a v]))
-                    tx
-                    m))
-       (xform tx form)))))
+                      (rf tx [:db/add e a v]))
+                    tx m))
+       (rf tx form)))))
 
 (defn check-base-ops
   "Transducer checking list forms of a basic
   operation: [(:db/add | :db/retract) e a v]."
-  [xform]
+  [rf]
   (fn
-    ([tx] (xform tx))
+    ([tx] (rf tx))
     ([tx form]
      (if (and (sequential? form)
               (= 4 (count form))
               (#{:db/add :db/retract} (first form)))
-       (xform tx (vec form))
+       (rf tx (vec form))
        (util/throw-error :db.error/invalid-tx-op
                          "not a valid transaction operation"
                          {:val form})))))
 
 (defn reverse-refs
   "Transducer resolving reverse attribute references."
-  [xform]
+  [rf]
   (fn
-    ([tx] (xform tx))
+    ([tx] (rf tx))
     ([tx [op e a v :as form]]
      (if (and (keyword? a)
               (str/starts-with? (name a) "_"))
-       (xform tx [op v (keyword (namespace a)
-                                (subs (name a) 1)) e])
-       (xform tx form)))))
+       (rf tx [op v (keyword (namespace a)
+                             (subs (name a) 1)) e])
+       (rf tx form)))))
 
 (defn resolve-attributes
   "Transducer resolving attributes."
-  [xform]
+  [rf]
   (fn
-    ([tx] (xform tx))
+    ([tx] (rf tx))
     ([tx [op e a v :as form]]
      (let [[tx id am] (resolve-attr tx a)]
-       (xform tx [op e id v])))))
+       (rf tx [op e id v])))))
 
 (defn resolve-entities
   "Transducer resolving entity identifiers in e position."
-  [xform]
+  [rf]
   (fn
-    ([tx] (xform tx))
+    ([tx] (rf tx))
     ([tx [op e a v :as form]]
      (if (tempid? e)
-       (xform (-> tx
-                  (update :ids assoc e e)
-                  (update :tempids conj e))
-              form)
+       (rf (update tx :tempids conj e) form)
        (let [[tx id] (resolve-id tx e)]
-         (xform tx [op id a v]))))))
+         (rf tx [op id a v]))))))
 
 (defn tx-report
   "Assembles a transaction report from a transaction
@@ -214,38 +210,3 @@
                (transaction conn)
                tx-data)))
 
-; TODO:
-; * Check for temporary ids on the tx partition (used for the tx entity)
-; * Determine transaction id
-; * Generate forms for a new transaction
-; * Check/convert value types
-; * Resolve ref entity ids
-; * Check unique identities
-; * Check cardinality
-; * Generate retract forms for existing cardinality-one datoms
-; * Check existing datoms for :db/retract, including id (don't allow
-;   tempid)
-; * Generate multiple forms if a vector is given for a multi-value
-;   attribute
-; * Expand nested map forms for ref attributes (generate ids in the parent
-;   entity's partition, constrain on component or unique like Datomic?)
-; * Check any supplied value for :db/txInstant (newer than every existing
-;   value, older than current time)
-; * Prevent transactions on system entities
-; * Generate missing install datoms for attributes
-; * Check required schema entities: ident, valueType, cardinality
-; * Prevent unique byte attributes
-; * Eliminate redundant datoms (existing, only differ in transaction id)
-; * Issue SQL and COMMIT
-; * Return a transaction report
-;
-; Later:
-; * Run transaction functions
-;
-; Done:
-; * Normalize to list form
-; * Assign implicit temporary entity ids
-; * Normalize reverse references (`[e :_a v] -> [v :a e]`)
-; * Resolve attribute entity ids (+ lookup schema)
-; * Resolve entity ids
-; * Verify all entity ids exist
