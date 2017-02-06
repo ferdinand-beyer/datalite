@@ -16,9 +16,8 @@
         db (db/db conn)]
     (testing "Non-existing integer partition id"
       (is (nil? (db/resolve-id db (tempid schema/ident 1)))))
-    (is (thrown-with-data?
-          {:db/error :db.error/invalid-db-id}
-          (db/resolve-id db (tempid :db.part/foo 1))))
+    (is (thrown-info? {:db/error :db.error/invalid-db-id}
+                      (db/resolve-id db (tempid :db.part/foo 1))))
     (is (= schema/ident
            (db/resolve-id db (tempid schema/part-db schema/ident))))
     (is (= schema/ident
@@ -55,18 +54,14 @@
     (is (= [[:db/add 1 :x/y 2]]
            (rf [] '(:db/add 1 :x/y 2))))
     (is (vector? (first (rf [] '(:db/add 1 :x/y 2)))))
-    (is (thrown-with-data?
-          {:db/error :db.error/invalid-tx-op}
-          (rf [] [])))
-    (is (thrown-with-data?
-          {:db/error :db.error/invalid-tx-op}
-          (rf [] [:db/add 1 :x/y])))
-    (is (thrown-with-data?
-          {:db/error :db.error/invalid-tx-op}
-          (rf [] [:db/add 1 :x/y 2 :too-many])))
-    (is (thrown-with-data?
-          {:db/error :db.error/invalid-tx-op}
-          (rf [] [:db/unknownOp 1 :x/y 2])))))
+    (is (thrown-info? {:db/error :db.error/invalid-tx-op}
+                      (rf [] [])))
+    (is (thrown-info? {:db/error :db.error/invalid-tx-op}
+                      (rf [] [:db/add 1 :x/y])))
+    (is (thrown-info? {:db/error :db.error/invalid-tx-op}
+                      (rf [] [:db/add 1 :x/y 2 :too-many])))
+    (is (thrown-info? {:db/error :db.error/invalid-tx-op}
+                      (rf [] [:db/unknownOp 1 :x/y 2])))))
 
 (deftest resolve-attributes-test
   (let [conn (conn/connect)
@@ -94,19 +89,19 @@
                                   (get schema/system-attributes schema/doc)))
                       [:db/add 1 :foo 3])))))
     (testing "non-attribute entities are not accepted"
-      (is (thrown-with-data?
+      (is (thrown-info?
             {:db/error :db.error/not-an-attribute
              :val :db.type/ref}
             (rf tx [:db/add 1 :db.type/ref 3]))))
     (testing "tempids are not accepted"
-      (is (thrown-with-data?
+      (is (thrown-info?
             {:db/error :db.error/not-an-entity
              :val -1}
             (rf tx [:db/add 1 -1 3])))
       (is (thrown? IllegalArgumentException
             (rf tx [:db/add 1 "attr" 3]))))
     (testing "resolution failure raises exception"
-      (is (thrown-with-data?
+      (is (thrown-info?
             {:db/error :db.error/not-an-entity
              :val :foo/bar}
             (rf tx [:db/add 1 :foo/bar 3]))))))
@@ -136,8 +131,7 @@
              (:tempids
                (rf tx [:db/add -1 2 3])))))
     (testing "resolution failure raises exception"
-      (is (thrown-with-data?
-            {:db/error :db.error/not-an-entity
-             :val :foo/bar}
-            (rf tx [:db/add :foo/bar 2 3]))))))
+      (is (thrown-info? {:db/error :db.error/not-an-entity
+                         :val :foo/bar}
+                        (rf tx [:db/add :foo/bar 2 3]))))))
 
