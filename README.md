@@ -1,14 +1,15 @@
 # datalite
 
-A Clojure library designed to ... well, that part is up to you.
+Datomic-inspired database on top of SQLite.
 
-## Usage
+## Status
 
-FIXME
+Pre-alpha.
+
+[![Build Status](https://travis-ci.org/ferdinand-beyer/datalite.svg?branch=master)](https://travis-ci.org/ferdinand-beyer/datalite)
 
 ## License
 
-Copyright © 2017 FIXME
+Copyright © 2017 Ferdinand Beyer
 
-Distributed under the Eclipse Public License either version 1.0 or (at
-your option) any later version.
+Distributed under the Eclipse Public License (see [LICENSE](LICENSE)).
