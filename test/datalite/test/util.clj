@@ -11,13 +11,13 @@
   (let [m (second form)
         body (nthnext form 2)]
     `(try ~@body
-          (ct/do-report {:type :fail, :message ~msg,
-                         :expected '~form, :actual nil})
+          (test/do-report {:type :fail, :message ~msg,
+                           :expected '~form, :actual nil})
           (catch Exception e#
             (if (= ~m (select-keys (ex-data e#) (keys ~m)))
-              (ct/do-report {:type :pass, :message ~msg,
-                             :expected '~form, :actual e#})
-              (ct/do-report {:type :fail, :message ~msg,
-                             :expected '~form, :actual e#}))
+              (test/do-report {:type :pass, :message ~msg,
+                               :expected '~form, :actual e#})
+              (test/do-report {:type :fail, :message ~msg,
+                               :expected '~form, :actual e#}))
             e#))))
 
