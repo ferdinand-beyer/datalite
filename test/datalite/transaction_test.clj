@@ -25,7 +25,7 @@
 
 (deftest map-forms-to-list-forms-test
   (let [rf (@#'dt/expand-map-forms conj)]
-    (is (= [1] (rf [1])))
+    (is (= [:result] (rf [:result])))
     (is (= [[:db/add 1 2 3]]
            (rf [] [:db/add 1 2 3])))
     (is (= #{[:db/add 42 :a 1] [:db/add 42 :b 2]}
@@ -36,7 +36,7 @@
 
 (deftest reversed-ref-attr-test
   (let [rf (@#'dt/reverse-refs conj)]
-    (is (= [1] (rf [1])))
+    (is (= [:result] (rf [:result])))
     (is (= [[:db/add 1 :x/y 2]]
            (rf [] [:db/add 1 :x/y 2])))
     (is (= [[:db/add 1 :x/y 2]]
@@ -46,7 +46,7 @@
 
 (deftest check-base-ops-test
   (let [rf (@#'dt/check-base-ops conj)]
-    (is (= [1] (rf [1])))
+    (is (= [:result] (rf [:result])))
     (is (= [[:db/add 1 :x/y 2]]
            (rf [] [:db/add 1 :x/y 2])))
     (is (= [[:db/retract 1 :x/y 2]]
@@ -69,25 +69,21 @@
         rf (@#'dt/resolve-attributes collect-tx-data)]
     (testing "a-value is replaced with resolved id"
       (is (= [[:db/add "foo" schema/ident :foo]]
-             (:tx-data
-               (rf tx [:db/add "foo" :db/ident :foo])))))
+             (:tx-data (rf tx [:db/add "foo" :db/ident :foo])))))
     (testing "resolved identifier is cached in tx"
       (is (= {:db/ident schema/ident}
-             (:ids
-               (rf tx [:db/add "foo" :db/ident :foo])))))
+             (:ids (rf tx [:db/add "foo" :db/ident :foo])))))
     (testing "attribute info is cached"
-      (is (contains?
-            (:attrs
-              (rf tx [:db/add "foo" :db/ident :foo]))
-            schema/ident)))
+      (is (contains? (:attrs (rf tx [:db/add "foo" :db/ident :foo]))
+                     schema/ident)))
     (testing "cache is used for resolution"
       (is (= [[:db/add 1 schema/doc 3]]
-             (:tx-data
-               (rf (-> tx
-                          (update :ids assoc :foo schema/doc)
-                          (update :attrs assoc schema/doc
-                                  (get schema/system-attributes schema/doc)))
-                      [:db/add 1 :foo 3])))))
+             (-> tx
+                 (update :ids assoc :foo schema/doc)
+                 (update :attrs assoc schema/doc
+                         (get schema/system-attributes schema/doc))
+                 (rf [:db/add 1 :foo 3])
+                 :tx-data))))
     (testing "non-attribute entities are not accepted"
       (is (thrown-info?
             {:db/error :db.error/not-an-attribute
@@ -99,7 +95,7 @@
              :val -1}
             (rf tx [:db/add 1 -1 3])))
       (is (thrown? IllegalArgumentException
-            (rf tx [:db/add 1 "attr" 3]))))
+                   (rf tx [:db/add 1 "attr" 3]))))
     (testing "resolution failure raises exception"
       (is (thrown-info?
             {:db/error :db.error/not-an-entity
@@ -112,24 +108,19 @@
         rf (@#'dt/resolve-entities collect-tx-data)]
     (testing "e-value is replaced with resolved id"
       (is (= [[:db/add schema/ident 2 3]]
-             (:tx-data
-               (rf tx [:db/add :db/ident 2 3])))))
+             (:tx-data (rf tx [:db/add :db/ident 2 3])))))
     (testing "resolved identifier is cached in tx"
       (is (= {:db/ident schema/ident}
-             (:ids
-               (rf tx [:db/add :db/ident 2 3])))))
+             (:ids (rf tx [:db/add :db/ident 2 3])))))
     (testing "cache is used for resolution"
       (is (= [[:db/add 42 2 3]]
-             (:tx-data
-               (rf (update tx :ids assoc :foo 42)
-                      [:db/add :foo 2 3])))))
+             (:tx-data (rf (update tx :ids assoc :foo 42)
+                           [:db/add :foo 2 3])))))
     (testing "tempids are collected but left alone"
       (is (= [[:db/add -1 2 3]]
-             (:tx-data
-               (rf tx [:db/add -1 2 3]))))
+             (:tx-data (rf tx [:db/add -1 2 3]))))
       (is (= #{-1}
-             (:tempids
-               (rf tx [:db/add -1 2 3])))))
+             (:tempids (rf tx [:db/add -1 2 3])))))
     (testing "resolution failure raises exception"
       (is (thrown-info? {:db/error :db.error/not-an-entity
                          :val :foo/bar}
