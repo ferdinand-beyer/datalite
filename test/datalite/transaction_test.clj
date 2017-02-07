@@ -11,17 +11,17 @@
   ([tx form]
    (update tx :tx-data conj form)))
 
-(deftest resolve-tempid-test
+(deftest resolve-dbid-test
   (let [conn (conn/connect)
         db (db/db conn)]
     (testing "Non-existing integer partition id"
-      (is (nil? (db/resolve-id db (tempid schema/ident 1)))))
+      (is (nil? (db/resolve-id db (->DbId schema/ident 1)))))
     (is (thrown-info? {:db/error :db.error/invalid-db-id}
-                      (db/resolve-id db (tempid :db.part/foo 1))))
+                      (db/resolve-id db (->DbId :db.part/foo 1))))
     (is (= schema/ident
-           (db/resolve-id db (tempid schema/part-db schema/ident))))
+           (db/resolve-id db (->DbId schema/part-db schema/ident))))
     (is (= schema/ident
-           (db/resolve-id db (tempid :db.part/db schema/ident))))))
+           (db/resolve-id db (->DbId :db.part/db schema/ident))))))
 
 (deftest map-forms-to-list-forms-test
   (let [rf (@#'dt/expand-map-forms conj)]
