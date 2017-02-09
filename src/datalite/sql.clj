@@ -23,23 +23,25 @@
          (finally
            (.setAutoCommit ~con ac#))))))
 
+(defprotocol Name
+  (dbname [this]))
+
+(extend-protocol Name
+  String
+  (dbname [s] s)
+
+  clojure.lang.Named
+  (dbname [n] (name n)))
+
 (defn quoted
   [x]
   (str \" (s/replace (str x) "\"" "\"\"") \"))
 
-(defprotocol ColumnName
-  (colname [this]))
-
-(extend-protocol ColumnName
-  String
-  (colname [s] s)
-
-  clojure.lang.Named
-  (colname [n] (name n)))
+(def quoted-name (comp quoted dbname))
 
 (defn- sql-col-vals
   [cols]
-  (s/join ", " (map #(str (quoted (colname %)) " = ?") cols)))
+  (s/join ", " (map #(str (quoted-name %) " = ?") cols)))
 
 (defn insert-sql
   "Returns a SQL command to INSERT values for cols into table."
@@ -47,16 +49,16 @@
   (let [[n tablecols]
         (if (sequential? cols)
           [(count cols)
-           (str " (" (s/join ", " (map (comp quoted colname) cols)) ")")]
+           (str " (" (s/join ", " (map quoted-name cols)) ")")]
           [cols nil])]
-  (str "INSERT INTO " (quoted table) tablecols
+  (str "INSERT INTO " (quoted-name table) tablecols
        " VALUES (" (s/join ", " (repeat n "?")) ")")))
 
 (defn update-sql
   "Returns a SQL command to UPDATE cols in table with an
   optional where."
   ([table cols]
-   (str "UPDATE " (quoted table) " SET " (sql-col-vals cols)))
+   (str "UPDATE " (quoted-name table) " SET " (sql-col-vals cols)))
   ([table cols where]
    (str (update-sql table cols) " WHERE " where)))
 
@@ -64,18 +66,6 @@
   "Log a SQL statement about to be executed."
   [sql]
   (log/debug sql))
-
-(defn- check-singleton
-  "Checks that a collection contains exactly one element."
-  [coll]
-  (if-let [[x & xs] (seq coll)]
-    (if xs
-      (throw (ex-info "multiple values" {:val xs}))
-      x)
-    (throw (ex-info "empty collection" {:val coll}))))
-
-(def ^:private check-one
-  (comp check-singleton check-singleton))
 
 (defn extract
   [^ResultSet rs ^Integer index]
@@ -175,17 +165,11 @@
   ([con sql params]
    (do-query con sql params first)))
 
-(defn query-one
+(defn query-val
   ([con sql]
-   (do-query con sql check-singleton))
+   (do-query con sql ffirst))
   ([con sql params]
-   (do-query con sql params check-singleton)))
-
-(defn query-value
-  ([con sql]
-   (do-query con sql check-one))
-  ([con sql params]
-   (do-query con sql params check-one)))
+   (do-query con sql params ffirst)))
 
 (defn cols
   [data]

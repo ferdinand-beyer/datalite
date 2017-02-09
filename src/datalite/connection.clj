@@ -30,7 +30,7 @@
   ([]
    (let [conn (sqlite-connect ":memory:")]
      (sql/with-tx conn
-       (boot/bootstrap conn))
+       (boot/bootstrap! conn))
      (->DbConnection conn)))
   ([filename]
    (let [conn (sqlite-connect filename)]
@@ -40,7 +40,7 @@
            (util/throw-error :db.error/unsupported-schema
                              "Unsupported schema in existing database"
                              {:filename filename}))
-         (boot/bootstrap conn)))
+         (boot/bootstrap! conn)))
      (->DbConnection conn))))
 
 (defn close

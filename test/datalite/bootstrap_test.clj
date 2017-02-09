@@ -1,6 +1,6 @@
 (ns datalite.bootstrap-test
   (:require [clojure.test :refer :all]
-            [datalite.bootstrap :refer :all]
+            [datalite.bootstrap :as b :refer :all]
             [datalite.schema :refer [system-ids]])
   (:import [java.sql Connection DriverManager]))
 
@@ -16,33 +16,33 @@
 (deftest table-exists-test
   (let [conn (memory-connection)]
     (exec conn "CREATE TABLE tbl1 (col INTEGER)")
-    (is (true? (@#'datalite.bootstrap/table-exists? conn "tbl1")))
-    (is (false? (@#'datalite.bootstrap/table-exists? conn "tbl2")))))
+    (is (true? (@#'b/table-exists? conn "tbl1")))
+    (is (false? (@#'b/table-exists? conn "tbl2")))))
 
 (deftest schema-creation-test
   (let [conn (memory-connection)]
     (is (false? (schema-exists? conn)))
-    (create-schema conn)
+    (create-schema! conn)
     (is (true? (schema-exists? conn)))))
 
 (deftest empty-schema-invalid-version-test
   (let [conn (memory-connection)]
-    (create-schema conn)
+    (create-schema! conn)
     (is (false? (valid-version? conn)))))
 
 (deftest bootstrap-meta-test
   (let [conn (memory-connection)]
-    (create-schema conn)
-    (bootstrap-meta conn)
+    (create-schema! conn)
+    (bootstrap-meta! conn)
     (is (true? (valid-version? conn)))))
 
 (deftest initial-head-numbers-test
   (let [conn (memory-connection)]
-    (create-schema conn)
+    (create-schema! conn)
     (with-open [stmt (.createStatement conn)
                 rs (.executeQuery stmt "SELECT * FROM head")]
       (is (false? (.next rs))))
-    (bootstrap-head conn)
+    (bootstrap-head! conn)
     (let [max-system-id (apply max (vals system-ids))]
       (with-open [stmt (.createStatement conn)
                   rs (.executeQuery stmt "SELECT * FROM head")]

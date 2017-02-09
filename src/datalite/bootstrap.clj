@@ -2,8 +2,8 @@
   "Bootstrap a SQLite database for Datalite."
   (:require [datalite.id :as id]
             [datalite.schema :as schema]
-            [datalite.util :refer [s]])
-  (:import [java.sql Connection]))
+            [datalite.sql :as sql]
+            [datalite.util :refer [s]]))
 
 (def initial-s 100)
 (def initial-t 1000)
@@ -38,16 +38,11 @@
     "CREATE INDEX idx_data_vaet ON data(v, a, e, tr, ta, vaet) WHERE vaet = 1"])
 
 (defn- sqlite-exists?
-  [^Connection conn type name]
-  (with-open [stmt (.prepareStatement
-                       conn
+  [con type name]
+  (pos? (sql/query-val con
                        (s "SELECT COUNT(*) FROM sqlite_master"
-                          " WHERE type = ? AND name = ?"))]
-      (.setString stmt 1 type)
-      (.setString stmt 2 name)
-      (with-open [rs (.executeQuery stmt)]
-        (.next rs)
-        (pos? (.getLong rs 1)))))
+                          " WHERE type = ? AND name = ?")
+                       [type name])))
 
 (defn- table-exists?
   "Returns true if a table with name table-name exists in conn."
@@ -60,25 +55,16 @@
   [conn]
   (table-exists? conn "meta"))
 
-(defn create-schema
+(defn create-schema!
   "Create the SQLite database schema in conn."
-  [^Connection conn]
-  (with-open [stmt (.createStatement conn)]
-    (doseq [sql schema-sql]
-      (.addBatch stmt sql))
-    (.executeBatch stmt)))
+  [con]
+  (sql/exec-many! con schema-sql))
 
 (defn- get-meta
   "Returns a value from the meta database table for the
   given meta-key."
-  [^Connection conn meta-key]
-  (with-open [stmt (.prepareStatement
-                     conn
-                     "SELECT v FROM meta WHERE k = ?")]
-    (.setString stmt 1 (str meta-key))
-    (with-open [rs (.executeQuery stmt)]
-      (when (.next rs)
-        (.getObject rs 1)))))
+  [con meta-key]
+  (sql/query-val con "SELECT v FROM meta WHERE k = ?" [meta-key]))
 
 (defn valid-version?
   "Returns true if the schema version in the SQLite database
@@ -91,28 +77,20 @@
   (and (schema-exists? conn)
        (valid-version? conn)))
 
-(defn bootstrap-meta
+(defn bootstrap-meta!
   "Bootstrap meta data."
-  [^Connection conn]
-  (with-open [stmt (.prepareStatement
-                     conn
-                     "INSERT INTO meta (k, v) VALUES (?, ?)")]
-    (.setString stmt 1 (str :datalite/schema-version))
-    (.setLong stmt 2 schema-version)
-    (.executeUpdate stmt)))
+  [con]
+  (sql/insert! con "meta" {:k :datalite/schema-version
+                           :v schema-version}))
 
-(defn bootstrap-head
+(defn bootstrap-head!
   "Bootstrap initial head values."
-  [^Connection conn]
-  (with-open [stmt (.prepareStatement
-                     conn
-                     "INSERT INTO head (s, t) VALUES (?, ?)")]
-    (.setLong stmt 1 initial-s)
-    (.setLong stmt 2 initial-t)
-    (.executeUpdate stmt)))
+  [con]
+  (sql/insert! con "head" {:s initial-s
+                           :t initial-t}))
 
 (defn avet?
-  "Return true if a datom for a shall be added to the
+  "Return true if a triple for a shall be added to the
   AVET index."
   [a]
   (let [attr (get schema/system-attributes a)]
@@ -121,14 +99,14 @@
           (get attr schema/unique)))))
 
 (defn vaet?
-  "Return true if a datom for a shall be added to the
+  "Return true if a triple for a shall be added to the
   VAET index."
   [a]
   (= schema/type-ref
      (get-in schema/system-attributes [a schema/value-type])))
 
-(defn system-datoms
-  "Returns a sequence of system datoms."
+(defn system-triples
+  "Returns a sequence of system triples."
   []
   (mapcat (fn [[e attrs]]
             (map (fn [[a v]]
@@ -136,39 +114,28 @@
                  attrs))
           schema/system-attributes))
 
-(defn boot-tx-datoms
-  "Returns a sequence of datoms for the bootstrap transaction."
+(defn boot-tx-triples
+  "Returns a sequence of triples for the bootstrap transaction."
   []
   [[(id/eid schema/part-tx 0) schema/tx-instant 0]])
 
-(defn bootstrap-data
-  "Insert boot datoms into the data table."
-  [^Connection conn]
-  (let [datoms (concat (system-datoms) (boot-tx-datoms))
+(defn bootstrap-data!
+  "Insert boot triples into the data table."
+  [con]
+  (let [triples (concat (system-triples) (boot-tx-triples))
         ta 0
         tr id/max-t]
-    (with-open [stmt (.prepareStatement
-                       conn
-                       (s "INSERT INTO data"
-                          " (e, a, v, ta, tr, avet, vaet)"
-                          " VALUES (?, ?, ?, ?, ?, ?, ?)"))]
-      (doseq [[e a v] datoms]
-        (doto stmt
-          (.setLong 1 e)
-          (.setLong 2 a)
-          (.setObject 3 v)
-          (.setLong 4 ta)
-          (.setLong 5 tr)
-          (.setBoolean 6 (avet? a))
-          (.setBoolean 7 (vaet? a))
-          (.executeUpdate))))))
+    (sql/insert-many! con "data" [:e :a :v :ta :tr :avet :vaet]
+                      (map (fn [[e a v]]
+                             [e a v ta tr (avet? a) (vaet? a)])
+                           triples))))
 
-(defn bootstrap
+(defn bootstrap!
   "Bootstrap an empty SQLite database."
   [conn]
   (doto conn
-    (create-schema)
-    (bootstrap-meta)
-    (bootstrap-head)
-    (bootstrap-data)))
+    (create-schema!)
+    (bootstrap-meta!)
+    (bootstrap-head!)
+    (bootstrap-data!)))
 

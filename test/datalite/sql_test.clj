@@ -51,25 +51,11 @@
     (is (= [1 "Homer"]
            (query-first con "SELECT * FROM characters")))))
 
-(deftest query-one-test
-  (with-open [con (sample-db)]
-    (is (= [4 "Lisa"]
-           (query-one con "SELECT * FROM characters WHERE name LIKE ?" ["L%"])))
-    (is (thrown? RuntimeException
-                 (query-one con "SELECT * FROM characters")))
-    (is (thrown? RuntimeException
-                 (query-one con "SELECT * FROM characters WHERE ? = ?" [1 0])))))
-
-(deftest query-value-test
+(deftest query-val-test
   (with-open [con (sample-db)]
     (is (= "Lisa"
-           (query-value con "SELECT name FROM characters WHERE id = 4")))
-    (is (thrown? RuntimeException
-                 (query-value con "SELECT name FROM characters")))
-    (is (thrown? RuntimeException
-                 (query-value con "SELECT name FROM characters WHERE 1 = 0")))
-    (is (thrown? RuntimeException
-                 (query-value con "SELECT * FROM characters WHERE id = 4")))))
+           (query-val con "SELECT name FROM characters WHERE id = 4")))
+    (is (nil? (query-val con "SELECT name FROM characters WHERE 1 = 0")))))
 
 (deftest exec-many-test
   (with-open [con (connect)]
@@ -83,7 +69,7 @@
   (is (= "INSERT INTO \"foo\" (\"foo\", \"bar\") VALUES (?, ?)"
          (insert-sql "foo" ["foo" "bar"])))
   (is (= "INSERT INTO \"tbl\" (\"kwd\", \"name\") VALUES (?, ?)"
-         (insert-sql "tbl" [:kwd :ns/name]))))
+         (insert-sql :tbl [:kwd :ns/name]))))
 
 (deftest update-sql-test
   (is (= "UPDATE \"foo\" SET \"bar\" = ?"
@@ -91,7 +77,7 @@
   (is (= "UPDATE \"tbl\" SET \"c1\" = ?, \"c2\" = ?, \"c3\" = ?"
          (update-sql "tbl" ["c1" "c2" "c3"])))
   (is (= "UPDATE \"tbl\" SET \"c1\" = ?, \"c2\" = ?, \"c3\" = ?"
-         (update-sql "tbl" ["c1" :ns/c2 'c3])))
+         (update-sql :tbl ["c1" :ns/c2 'c3])))
   (is (= "UPDATE \"tbl\" SET \"c1\" = ?, \"c2\" = ? WHERE c1 = c2"
          (update-sql "tbl" ["c1" "c2"] "c1 = c2"))))
 
