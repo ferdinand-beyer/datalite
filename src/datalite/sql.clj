@@ -23,25 +23,25 @@
          (finally
            (.setAutoCommit ~con ac#))))))
 
-(defprotocol Name
-  (dbname [this]))
+(defprotocol SQLName
+  (sql-name [this]))
 
-(extend-protocol Name
+(extend-protocol SQLName
   String
-  (dbname [s] s)
+  (sql-name [s] s)
 
   clojure.lang.Named
-  (dbname [n] (name n)))
+  (sql-name [n] (name n)))
 
 (defn quoted
   [x]
   (str \" (s/replace (str x) "\"" "\"\"") \"))
 
-(def quoted-name (comp quoted dbname))
+(def quoted-name (comp quoted sql-name))
 
 (defn- sql-col-vals
-  [cols]
-  (s/join ", " (map #(str (quoted-name %) " = ?") cols)))
+  [sep cols]
+  (s/join sep (map #(str (quoted-name %) " = ?") cols)))
 
 (defn insert-sql
   "Returns a SQL command to INSERT values for cols into table."
@@ -51,14 +51,14 @@
           [(count cols)
            (str " (" (s/join ", " (map quoted-name cols)) ")")]
           [cols nil])]
-  (str "INSERT INTO " (quoted-name table) tablecols
-       " VALUES (" (s/join ", " (repeat n "?")) ")")))
+    (str "INSERT INTO " (quoted-name table) tablecols
+         " VALUES (" (s/join ", " (repeat n "?")) ")")))
 
 (defn update-sql
   "Returns a SQL command to UPDATE cols in table with an
   optional where."
   ([table cols]
-   (str "UPDATE " (quoted-name table) " SET " (sql-col-vals cols)))
+   (str "UPDATE " (quoted-name table) " SET " (sql-col-vals ", " cols)))
   ([table cols where]
    (str (update-sql table cols) " WHERE " where)))
 
@@ -202,7 +202,7 @@
   ([con table data where]
    (if (map? where)
      (update! con table data
-              (sql-col-vals (keys where))
+              (sql-col-vals " AND " (keys where))
               (vals where))
      (exec! con (update-sql table (cols data) where)
             (values data))))

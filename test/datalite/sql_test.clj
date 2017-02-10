@@ -114,4 +114,10 @@
   (with-open [con (sample-db)]
     (is (= 1 (update! con "characters" {:name "John"} {:name "Bart"})))
     (is (= [["John"]]
+           (query con "SELECT name FROM characters WHERE id = 3"))))
+  (with-open [con (sample-db)]
+    (is (= 1 (update! con "characters" {:name "Larry"}
+                      {:id 3, :name "Bart"})))
+    (is (= [["Larry"]]
            (query con "SELECT name FROM characters WHERE id = 3")))))
+
