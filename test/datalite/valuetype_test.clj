@@ -41,12 +41,14 @@
 
 (deftest sqlite-types-test
   (doseq [[vt cls] sqlite-types]
-    (let [value (get values vt)
-          ->sql (get-in vt/types [vt :write])]
-      (is (= cls (class (->sql value)))))))
+    (testing (str "Value type " vt " " (get schema/system-keys vt))
+      (let [value (get values vt)
+            ->sql (get-in vt/types [vt :write])]
+        (is (= cls (class (->sql value))))))))
 
 (deftest write-read-test
   (doseq [[vt value] values]
-    (let [{:keys [read write]} (get vt/types vt)]
-      (is (= value (read (write value)))))))
+    (testing (str "Value type " vt " " (get schema/system-keys vt))
+      (let [{:keys [read write]} (get vt/types vt)]
+        (is (= value (read (write value))))))))
 
