@@ -108,3 +108,11 @@
   (Class/forName "[B")
     (value-type [_] schema/type-bytes))
 
+(defn coerce-read
+  [vt x]
+  ((get-in types [vt :read]) x))
+
+(defn coerce-write
+  [vt x]
+  ((get-in types [vt :write]) x))
+

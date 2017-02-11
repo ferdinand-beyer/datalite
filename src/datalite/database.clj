@@ -2,20 +2,18 @@
   (:require [datalite.connection :as conn]
             [datalite.id :as id]
             [datalite.schema :as schema]
-            [datalite.util :as util :refer [s]])
-  (:import [datalite.connection DbConnection]
-           [java.sql Connection]))
+            [datalite.sql :as sql]
+            [datalite.util :as util :refer [s]]
+            [datalite.valuetype :as vt]))
 
 ;;;; Database value
 
 (defn- current-t
   [conn]
-  (with-open [stmt (.createStatement (conn/sql-conn conn))
-              rs (.executeQuery stmt "SELECT t FROM head LIMIT 1")]
-    (.next rs)
-    (.getLong rs 1)))
+  (sql/query-val (conn/sql-con conn) "SELECT t FROM head LIMIT 1"))
 
-(deftype Database [^DbConnection conn basis-t])
+(deftype Database [^datalite.connection.DbConnection conn
+                   basis-t])
 
 (defn db
   "Constructs a database value."
@@ -28,81 +26,65 @@
   [^Database db]
   (.basis-t db))
 
-(defn ^Connection sql-conn
+(defn sql-con
   "Returns the SQL connection from db."
-  [^Database db]
-  (conn/sql-conn (.conn db)))
+  ^java.sql.Connection [^Database db]
+  (conn/sql-con (.conn db)))
 
 ;;;; Entity queries
 
 (defn- entity?
   "Returns true if the entity id e exists."
   [^Database db e]
-  (with-open [stmt (.prepareStatement
-                     (sql-conn db)
-                     (s "SELECT e FROM data "
-                        "WHERE e = ? AND ? BETWEEN ta AND tr "
-                        "LIMIT 1"))]
-    (.setLong stmt 1 e)
-    (.setLong stmt 2 (.basis-t db))
-    (with-open [rs (.executeQuery stmt)]
-      (.next rs))))
+  (some? (sql/query-val (sql-con db)
+                        (s "SELECT e FROM data "
+                           "WHERE e = ? AND ? BETWEEN ta AND tr "
+                           "LIMIT 1")
+                        [(long e) (basis-t db)])))
 
 ; TODO: Protocols to get/set v with value-type hint
 
 (defn- ident->eid
   [^Database db kwd]
-  (with-open [stmt (.prepareStatement
-                     (sql-conn db)
-                     (s "SELECT e FROM data "
-                        "WHERE a = ? AND v = ? "
-                        "AND ? BETWEEN ta AND tr "
-                        "AND avet = 1 "
-                        "LIMIT 1"))]
-    (.setLong stmt 1 schema/ident)
-    (.setString stmt 2 (str kwd))
-    (.setLong stmt 3 (.basis-t db))
-    (with-open [rs (.executeQuery stmt)]
-      (when (.next rs)
-        (.getLong rs 1)))))
+  (sql/query-val (sql-con db)
+                 (s "SELECT e FROM data "
+                    "WHERE a = ? AND v = ? "
+                    "AND ? BETWEEN ta AND tr "
+                    "AND avet = 1 "
+                    "LIMIT 1")
+                 [schema/ident (str kwd) (basis-t db)]))
 
 (defn- unique->eid
   [^Database db a v]
-  (with-open [stmt (.prepareStatement
-                     (sql-conn db)
-                     (s "SELECT e FROM data "
+  (sql/query-val (sql-con db)
+                 (s "SELECT e FROM data "
                         "WHERE a = ? AND v = ? "
                         "AND ? BETWEEN ta AND tr "
                         "AND avet = 1 "
-                        "LIMIT 1"))]
-    (.setLong stmt 1 a)
-    (.setObject stmt 2 v)
-    (.setLong stmt 3 (.basis-t db))
-    (with-open [rs (.executeQuery stmt)]
-      (when (.next rs)
-        (.getLong rs 1)))))
+                        "LIMIT 1")
+                 [(long a) v (basis-t db)]))
+
+(defn- assoc-multi
+  [m k v]
+  (update m k (fn [old-v]
+                (if old-v
+                  (if (set? old-v)
+                    (conj old-v v)
+                    #{old-v v})
+                  v))))
 
 (defn attr-map
   [^Database db e]
-  (with-open [stmt (.prepareStatement
-                     (sql-conn db)
-                     (s "SELECT a, v FROM data "
-                        "WHERE e = ? AND ? BETWEEN ta AND tr"))]
-    (.setLong stmt 1 e)
-    (.setLong stmt 2 (.basis-t db))
-    (with-open [rs (.executeQuery stmt)]
-      (loop [m nil]
-        (if (.next rs)
-          (recur
-            (let [a (.getLong rs 1)
-                  v (.getObject rs 2)]
-              (assoc m a
-                     (if-let [old-v (get m a)]
-                       (if (set? old-v)
-                         (conj old-v v)
-                         (hash-set old-v v))
-                       v))))
-          m)))))
+  (sql/run-query (sql-con db)
+                 (s "SELECT d.a, d.v, s.v FROM data d"
+                    " INNER JOIN data s ON d.a = s.e"
+                    " WHERE d.e = ? AND s.a = ?"
+                    " AND ? BETWEEN d.ta AND d.tr"
+                    " AND ? BETWEEN s.ta AND s.tr")
+                 [(long e) schema/value-type (basis-t db) (basis-t db)]
+                 #(reduce (fn [m [a v vt]]
+                            (assoc-multi m a (vt/coerce-read vt v)))
+                          nil %)))
 
 ;;;; Schema queries
 

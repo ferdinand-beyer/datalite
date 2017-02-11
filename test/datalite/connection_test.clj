@@ -5,5 +5,5 @@
 
 (deftest connect-to-memory-db-test
   (with-open [conn (connect)]
-    (is (boot/valid-schema? (.conn conn)))))
+    (is (boot/valid-schema? (sql-con conn)))))
 

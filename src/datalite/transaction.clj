@@ -204,7 +204,7 @@
 (defn transact
   [conn tx-data]
   (sql/with-tx
-    (conn/sql-conn conn)
+    (conn/sql-con conn)
     (transduce process-tx-data
                tx-report
                (transaction conn)

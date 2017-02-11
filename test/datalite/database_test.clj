@@ -33,3 +33,9 @@
     (is (= schema/part-db (resolve-id db [schema/ident :db.part/db])))
     (is (= schema/part-db (resolve-id db [[:db/ident :db/ident] :db.part/db])))))
 
+(deftest attr-map-test
+  (let [conn (conn/connect)
+        db (db conn)]
+    (is (= (get schema/system-attributes schema/ident)
+           (attr-map db schema/ident)))))
+

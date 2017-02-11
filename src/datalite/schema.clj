@@ -1,6 +1,5 @@
 (ns datalite.schema
-  (:require [clojure.set :refer [map-invert]]
-            [datalite.util :refer [s]]))
+  (:require [clojure.set :refer [map-invert]]))
 
 (def part-db 0)
 (def part-tx 1)
@@ -42,24 +41,24 @@
 (def system-attributes
   {part-db
    {ident :db.part/db
-    doc (s "Name of the system partition. The system partition "
-           "includes the core of Datalite, as well as user "
-           "schemas: type definitions, attribute definitions, "
-           "partition definitions, and data function definitions.")}
+    doc (str "Name of the system partition. The system partition "
+             "includes the core of Datalite, as well as user "
+             "schemas: type definitions, attribute definitions, "
+             "partition definitions, and data function definitions.")}
 
    part-tx
    {ident :db.part/tx
-    doc (s "Partition used to store data about transactions. "
-           "Transaction data always includes a :db/txInstant which "
-           "is the transaction's timestamp, and can be extended to "
-           "store other information at transaction granularity.")}
+    doc (str "Partition used to store data about transactions. "
+             "Transaction data always includes a :db/txInstant which "
+             "is the transaction's timestamp, and can be extended to "
+             "store other information at transaction granularity.")}
 
    part-user
    {ident :db.part/user
-    doc (s "Name of the user partition. The user partition is "
-           "analogous to the default namespace in a programming "
-           "language, and should be used as a temporary home for "
-           "data during interactive development.")}
+    doc (str "Name of the user partition. The user partition is "
+             "analogous to the default namespace in a programming "
+             "language, and should be used as a temporary home for "
+             "data during interactive development.")}
 
    ident
    {ident :db/ident
@@ -70,20 +69,20 @@
 
    type-ref
    {ident :db.type/ref
-    doc (s "Value type for references. All references from one "
-           "entity to another are through attributes with this "
-           "value type.")}
+    doc (str "Value type for references. All references from one "
+             "entity to another are through attributes with this "
+             "value type.")}
 
    type-keyword
    {ident :db.type/keyword
-    doc (s "Value type for keywords. Keywords are used as names, "
-           "and are interned for efficiency. Keywords map to the "
-           "native interned-name type in languages that support them.")}
+    doc (str "Value type for keywords. Keywords are used as names, "
+             "and are interned for efficiency. Keywords map to the "
+             "native interned-name type in languages that support them.")}
 
    type-long
    {ident :db.type/long
-    doc (s "Fixed integer value type. Same semantics as a Java long: "
-           "64 bits wide, two's complement binary representation.")}
+    doc (str "Fixed integer value type. Same semantics as a Java long: "
+             "64 bits wide, two's complement binary representation.")}
 
    type-string
    {ident :db.type/string
@@ -95,10 +94,10 @@
 
    type-instant
    {ident :db.type/instant
-    doc (s "Value type for instants in time. Stored internally as "
-           "a number of milliseconds since midnight, January 1, "
-           "1970 UTC. Representation type will vary depending on "
-           "the language you are using.")}
+    doc (str "Value type for instants in time. Stored internally as "
+             "a number of milliseconds since midnight, January 1, "
+             "1970 UTC. Representation type will vary depending on "
+             "the language you are using.")}
 
    type-fn
    {ident :db.type/fn
@@ -106,13 +105,13 @@
 
    type-float
    {ident :db.type/float
-    doc (s "Floating point value type. Same semantics as a Java float: "
-           "single-precision 32-bit IEEE 754 floating point.")}
+    doc (str "Floating point value type. Same semantics as a Java float: "
+             "single-precision 32-bit IEEE 754 floating point.")}
 
    type-double
    {ident :db.type/double
-    doc (s "Floating point value type. Same semantics as a Java double: "
-           "double-precision 64-bit IEEE 754 floating point.")}
+    doc (str "Floating point value type. Same semantics as a Java double: "
+             "double-precision 64-bit IEEE 754 floating point.")}
 
    type-bytes
    {ident :db.type/bytes
@@ -120,13 +119,13 @@
 
    type-bigint
    {ident :db.type/bigint
-    doc (s "Value type for arbitrary precision integers. Maps to "
-           "java.math.BigInteger on the JVM.")}
+    doc (str "Value type for arbitrary precision integers. Maps to "
+             "java.math.BigInteger on the JVM.")}
 
    type-bigdec
    {ident :db.type/bigdec
-    doc (s "Value type for arbitrary precision floating point numbers. "
-           "Maps to java.math.BigDecimal on the JVM.")}
+    doc (str "Value type for arbitrary precision floating point numbers. "
+             "Maps to java.math.BigDecimal on the JVM.")}
 
    type-uuid
    {ident :db.type/uuid
@@ -138,93 +137,98 @@
 
    cardinality-one
    {ident :db.cardinality/one
-    doc (s "One of two legal values for the :db/cardinality attribute. "
-           "Specify :db.cardinality/one for single-valued attributes, "
-           "and :db.cardinality/many for many-valued attributes.")}
+    doc (str "One of two legal values for the :db/cardinality attribute. "
+             "Specify :db.cardinality/one for single-valued attributes, "
+             "and :db.cardinality/many for many-valued attributes.")}
 
    cardinality-many
    {ident :db.cardinality/many
-    doc (s "One of two legal values for the :db/cardinality attribute. "
-           "Specify :db.cardinality/one for single-valued attributes, "
-           "and :db.cardinality/many for many-valued attributes.")}
+    doc (str "One of two legal values for the :db/cardinality attribute. "
+             "Specify :db.cardinality/one for single-valued attributes, "
+             "and :db.cardinality/many for many-valued attributes.")}
 
    unique-value
    {ident :db.unique/value
-    doc (s "Specifies that an attribute's value is unique. Attempts to "
-           "create a new entity with a colliding value for a "
-           ":db.unique/value will fail.")}
+    doc (str "Specifies that an attribute's value is unique. Attempts to "
+             "create a new entity with a colliding value for a "
+             ":db.unique/value will fail.")}
 
    unique-identity
    {ident :db.unique/identity
-    doc (s "Specifies that an attribute's value is unique. Attempts to "
-           "create a new entity with a colliding value for a "
-           ":db.unique/identity will become upserts.")}
+    doc (str "Specifies that an attribute's value is unique. Attempts to "
+             "create a new entity with a colliding value for a "
+             ":db.unique/identity will become upserts.")}
 
    value-type
    {ident :db/valueType
     value-type type-ref
     cardinality cardinality-one
-    doc (s "Property of an attribute that specifies the attribute's "
-           "value type. Built-in value types include :db.type/keyword, "
-           ":db.type/string, :db.type/ref, :db.type/instant, "
-           ":db.type/long, :db.type/bigdec, :db.type/boolean, "
-           ":db.type/float, :db.type/uuid, :db.type/double, "
-           ":db.type/bigint, :db.type/uri.")}
+    doc (str "Property of an attribute that specifies the attribute's "
+             "value type. Built-in value types include :db.type/keyword, "
+             ":db.type/string, :db.type/ref, :db.type/instant, "
+             ":db.type/long, :db.type/bigdec, :db.type/boolean, "
+             ":db.type/float, :db.type/uuid, :db.type/double, "
+             ":db.type/bigint, :db.type/uri.")}
 
    cardinality
    {ident :db/cardinality
     value-type type-ref
     cardinality cardinality-one
-    doc (s "Property of an attribute. Two possible values: "
-           ":db.cardinality/one for single-valued attributes, and "
-           ":db.cardinality/many for many-valued attributes. "
-           "Defaults to :db.cardinality/one.")}
+    doc (str "Property of an attribute. Two possible values: "
+             ":db.cardinality/one for single-valued attributes, and "
+             ":db.cardinality/many for many-valued attributes. "
+             "Defaults to :db.cardinality/one.")}
 
    unique
    {ident :db/unique
     value-type type-ref
     cardinality cardinality-one
-    doc (s "Property of an attribute. If value is :db.unique/value, "
-           "then attribute value is unique to each entity. Attempts "
-           "to insert a duplicate value for a temporary entity id will "
-           "fail. If value is :db.unique/identity, then attribute value "
-           "is unique, and upsert is enabled. Attempting to insert a "
-           "duplicate value for a temporary entity id will cause all "
-           "attributes associated with that temporary id to be merged "
-           "with the entity already in the database. Defaults to nil.")}
+    doc (str "Property of an attribute. If value is :db.unique/value, "
+             "then attribute value is unique to each entity. Attempts "
+             "to insert a duplicate value for a temporary entity id will "
+             "fail. If value is :db.unique/identity, then attribute value "
+             "is unique, and upsert is enabled. Attempting to insert a "
+             "duplicate value for a temporary entity id will cause all "
+             "attributes associated with that temporary id to be merged "
+             "with the entity already in the database. Defaults to nil.")}
 
    index
    {ident :db/index
     value-type type-boolean
     cardinality cardinality-one
-    doc (s "Property of an attribute. If true, create an AVET index for "
-           "the attribute. Defaults to false.")}
+    doc (str "Property of an attribute. If true, create an AVET index for "
+             "the attribute. Defaults to false.")}
 
    fulltext
    {ident :db/fulltext
-    doc (s "Property of an attribute. If true, create a fulltext search "
-           "index for the attribute. Defaults to false.")}
+    value-type type-boolean
+    doc (str "Property of an attribute. If true, create a fulltext search "
+             "index for the attribute. Defaults to false.")}
 
    is-component
    {ident :db/isComponent
-    doc (s "Property of attribute whose value type is :db.type/ref. "
-           "If true, then the attribute is a component of the entity "
-           "referencing it. When you query for an entire entity, "
-           "components are fetched automatically. Defaults to nil.")}
+    value-type type-boolean
+    doc (str "Property of attribute whose value type is :db.type/ref. "
+             "If true, then the attribute is a component of the entity "
+             "referencing it. When you query for an entire entity, "
+             "components are fetched automatically. Defaults to nil.")}
 
    no-history
    {ident :db/noHistory
-    doc (s "Property of an attribute. If true, past values of the "
-           "attribute are not retained after indexing. Defaults to false.")}
+    value-type type-boolean
+    doc (str "Property of an attribute. If true, past values of the "
+             "attribute are not retained after indexing. Defaults to false.")}
 
    tx-instant
    {ident :db/txInstant
+    value-type type-instant
     index true
-    doc (s "Attribute whose value is a :db.type/instant. A :db/txInstant "
-           "is recorded automatically with every transaction.")}
+    doc (str "Attribute whose value is a :db.type/instant. A :db/txInstant "
+             "is recorded automatically with every transaction.")}
 
    doc
    {ident :db/doc
+    value-type type-string
     fulltext true
     doc "Documentation string for an entity."}})
 

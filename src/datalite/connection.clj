@@ -15,33 +15,33 @@
   (.createConnection (sqlite-config)
                      (str "jdbc:sqlite:" filename)))
 
-(deftype DbConnection [^Connection conn]
+(deftype DbConnection [^Connection sql-con]
   java.lang.AutoCloseable
   (close [this]
-    (.close conn)))
+    (.close sql-con)))
 
-(defn ^Connection sql-conn
+(defn ^Connection sql-con
   [^DbConnection conn]
-  (.conn conn))
+  (.sql-con conn))
 
 (defn connect
   "Connects to the specified database file, or a in-memory
   database if no file is given."
   ([]
-   (let [conn (sqlite-connect ":memory:")]
-     (sql/with-tx conn
-       (boot/bootstrap! conn))
-     (->DbConnection conn)))
+   (let [con (sqlite-connect ":memory:")]
+     (sql/with-tx con
+       (boot/bootstrap! con))
+     (->DbConnection con)))
   ([filename]
-   (let [conn (sqlite-connect filename)]
-     (sql/with-tx conn
-       (if (boot/schema-exists? conn)
-         (when-not (boot/valid-version? conn)
+   (let [con (sqlite-connect filename)]
+     (sql/with-tx con
+       (if (boot/schema-exists? con)
+         (when-not (boot/valid-version? con)
            (util/throw-error :db.error/unsupported-schema
                              "Unsupported schema in existing database"
                              {:filename filename}))
-         (boot/bootstrap! conn)))
-     (->DbConnection conn))))
+         (boot/bootstrap! con)))
+     (->DbConnection con))))
 
 (defn close
   "Closes the given connection."
