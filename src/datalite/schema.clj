@@ -5,29 +5,35 @@
 (deftype Schema [entities ids])
 
 (defn schema
+  "Creates a Schema object for an entity-attribute map."
   [entities]
   (let [ids (into {} (map (fn [[id attrs]]
                             [(get attrs sys/ident) id])
                           entities))]
     (->Schema entities ids)))
 
-(defn id
-  [^Schema schema ident]
-  (get (.ids schema) ident))
-
 (defn entities
+  "Returns a map of entities and their attributes."
   [^Schema schema]
   (.entities schema))
 
+(defn id
+  "Return the entity id for an ident."
+  [^Schema schema ident]
+  (get (.ids schema) ident))
+
 (defn attrs
-  [^Schema schema id]
-  (get (.entities schema) id))
+  "Returns a map of attributes for an entity id."
+  [^Schema schema eid]
+  (get (.entities schema) eid))
 
 (defn attr
+  "Returns the value of an entity attribute."
   [schema eid aid]
   (get (attrs schema eid) aid))
 
 (defn ident
+  "Returns the ident for an entity id."
   [schema eid]
   (attr schema eid sys/ident))
 
@@ -36,25 +42,33 @@
   #{sys/ident sys/value-type sys/cardinality})
 
 (defn attr?
-  [schema id]
-  (if-let [attrs (attrs schema id)]
+  "Returns true if the entity identified by eid is
+  an attribute."
+  [schema eid]
+  (if-let [attrs (attrs schema eid)]
     (every? (set (keys attrs)) attr-required)
     false))
 
 (defn multival?
-  [schema id]
-  (= sys/cardinality-many (attr schema id sys/cardinality)))
+  "Returns true if eid identifies a :db.cardinality/many attribute."
+  [schema eid]
+  (= sys/cardinality-many (attr schema eid sys/cardinality)))
 
 (defn ref?
-  [schema id]
-  (= sys/type-ref (attr schema id sys/value-type)))
+  "Returns true if eid identifies an attribute with :db.type/ref
+  value type."
+  [schema eid]
+  (= sys/type-ref (attr schema eid sys/value-type)))
 
 (defn has-avet?
-  [schema id]
-  (let [attrs (attrs schema id)]
+  "Returns true if eid identifies an attribute in the AVET index."
+  [schema eid]
+  (let [attrs (attrs schema eid)]
     (boolean (some attrs [sys/index sys/unique]))))
 
-(def system-schema (schema sys/entities))
+(def system-schema
+  "Schema of system entities."
+  (schema sys/entities))
 
 ;; TODO: Define on schema!
 (defn attr-info
