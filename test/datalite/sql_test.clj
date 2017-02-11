@@ -63,23 +63,23 @@
                               "CREATE UNIQUE INDEX kvs_k ON kvs(k)"
                               "INSERT INTO kvs VALUES ('foo', 'bar')"])))))
 
-(deftest insert-sql-test
+(deftest sql-insert-test
   (is (= "INSERT INTO \"foo\" VALUES (?)"
-         (insert-sql "foo" 1)))
+         (sql-insert "foo" 1)))
   (is (= "INSERT INTO \"foo\" (\"foo\", \"bar\") VALUES (?, ?)"
-         (insert-sql "foo" ["foo" "bar"])))
+         (sql-insert "foo" ["foo" "bar"])))
   (is (= "INSERT INTO \"tbl\" (\"kwd\", \"name\") VALUES (?, ?)"
-         (insert-sql :tbl [:kwd :ns/name]))))
+         (sql-insert :tbl [:kwd :ns/name]))))
 
-(deftest update-sql-test
+(deftest sql-update-test
   (is (= "UPDATE \"foo\" SET \"bar\" = ?"
-         (update-sql "foo" ["bar"])))
+         (sql-update "foo" ["bar"])))
   (is (= "UPDATE \"tbl\" SET \"c1\" = ?, \"c2\" = ?, \"c3\" = ?"
-         (update-sql "tbl" ["c1" "c2" "c3"])))
+         (sql-update "tbl" ["c1" "c2" "c3"])))
   (is (= "UPDATE \"tbl\" SET \"c1\" = ?, \"c2\" = ?, \"c3\" = ?"
-         (update-sql :tbl ["c1" :ns/c2 'c3])))
+         (sql-update :tbl ["c1" :ns/c2 'c3])))
   (is (= "UPDATE \"tbl\" SET \"c1\" = ?, \"c2\" = ? WHERE c1 = c2"
-         (update-sql "tbl" ["c1" "c2"] "c1 = c2"))))
+         (sql-update "tbl" ["c1" "c2"] "c1 = c2"))))
 
 (deftest insert-test
   (with-open [con (sample-db)]
