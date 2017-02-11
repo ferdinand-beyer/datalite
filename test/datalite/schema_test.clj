@@ -1,10 +1,11 @@
 (ns datalite.schema-test
   (:require [clojure.test :refer :all]
-            [datalite.schema :refer :all]))
+            [datalite.schema :refer :all]
+            [datalite.system :as sys]))
 
 (deftest attr-info-test
-  (let [attr (attr-info ident)]
-    (is (= ident (:id attr)))
+  (let [attr (attr-info sys/ident)]
+    (is (= sys/ident (:id attr)))
     (is (= :db/ident (:ident attr)))
     (is (= :db.cardinality/one (:cardinality attr)))
     (is (= :db.type/keyword (:value-type attr)))

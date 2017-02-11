@@ -3,6 +3,7 @@
             [datalite.connection :as conn]
             [datalite.database :as db]
             [datalite.schema :as schema]
+            [datalite.system :as sys]
             [datalite.test.util]
             [datalite.transaction :as dt :refer :all]))
 
@@ -15,13 +16,13 @@
   (let [conn (conn/connect)
         db (db/db conn)]
     (testing "Non-existing integer partition id"
-      (is (nil? (db/resolve-id db (->DbId schema/ident 1)))))
+      (is (nil? (db/resolve-id db (->DbId sys/ident 1)))))
     (is (thrown-info? {:db/error :db.error/invalid-db-id}
                       (db/resolve-id db (->DbId :db.part/foo 1))))
-    (is (= schema/ident
-           (db/resolve-id db (->DbId schema/part-db schema/ident))))
-    (is (= schema/ident
-           (db/resolve-id db (->DbId :db.part/db schema/ident))))))
+    (is (= sys/ident
+           (db/resolve-id db (->DbId sys/part-db sys/ident))))
+    (is (= sys/ident
+           (db/resolve-id db (->DbId :db.part/db sys/ident))))))
 
 (deftest map-forms-to-list-forms-test
   (let [rf (@#'dt/expand-map-forms conj)]
@@ -68,20 +69,20 @@
         tx (@#'dt/transaction conn)
         rf (@#'dt/resolve-attributes collect-tx-data)]
     (testing "a-value is replaced with resolved id"
-      (is (= [[:db/add "foo" schema/ident :foo]]
+      (is (= [[:db/add "foo" sys/ident :foo]]
              (:tx-data (rf tx [:db/add "foo" :db/ident :foo])))))
     (testing "resolved identifier is cached in tx"
-      (is (= {:db/ident schema/ident}
+      (is (= {:db/ident sys/ident}
              (:ids (rf tx [:db/add "foo" :db/ident :foo])))))
     (testing "attribute info is cached"
       (is (contains? (:attrs (rf tx [:db/add "foo" :db/ident :foo]))
-                     schema/ident)))
+                     sys/ident)))
     (testing "cache is used for resolution"
-      (is (= [[:db/add 1 schema/doc 3]]
+      (is (= [[:db/add 1 sys/doc 3]]
              (-> tx
-                 (update :ids assoc :foo schema/doc)
-                 (update :attrs assoc schema/doc
-                         (get schema/system-attributes schema/doc))
+                 (update :ids assoc :foo sys/doc)
+                 (update :attrs assoc sys/doc
+                         (schema/attrs schema/system-schema sys/doc))
                  (rf [:db/add 1 :foo 3])
                  :tx-data))))
     (testing "non-attribute entities are not accepted"
@@ -107,10 +108,10 @@
         tx (@#'dt/transaction conn)
         rf (@#'dt/resolve-entities collect-tx-data)]
     (testing "e-value is replaced with resolved id"
-      (is (= [[:db/add schema/ident 2 3]]
+      (is (= [[:db/add sys/ident 2 3]]
              (:tx-data (rf tx [:db/add :db/ident 2 3])))))
     (testing "resolved identifier is cached in tx"
-      (is (= {:db/ident schema/ident}
+      (is (= {:db/ident sys/ident}
              (:ids (rf tx [:db/add :db/ident 2 3])))))
     (testing "cache is used for resolution"
       (is (= [[:db/add 42 2 3]]

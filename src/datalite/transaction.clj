@@ -2,7 +2,7 @@
   (:require [datalite.database :as db]
             [datalite.connection :as conn]
             [datalite.id :as id]
-            [datalite.schema :as schema]
+            [datalite.system :as sys]
             [datalite.sql :as sql]
             [datalite.util :as util]
             [clojure.string :as str]))
@@ -63,7 +63,7 @@
      :conn conn
      :basis-t t
      :t (inc t)
-     :tx (id/eid schema/part-tx t)
+     :tx (id/eid sys/part-tx t)
      :ids {}
      :attrs {}
      :tempids #{}
@@ -85,9 +85,9 @@
 
 (defn- attr?
   [am]
-  (and (contains? am schema/ident)
-       (contains? am schema/value-type)
-       (contains? am schema/cardinality)))
+  (and (contains? am sys/ident)
+       (contains? am sys/value-type)
+       (contains? am sys/cardinality)))
 
 (defn- resolve-attr
   [tx attr]

@@ -3,6 +3,7 @@
   (:require [datalite.id :as id]
             [datalite.schema :as schema]
             [datalite.sql :as sql]
+            [datalite.system :as sys]
             [datalite.util :refer [s]]))
 
 (def initial-s 100)
@@ -92,18 +93,14 @@
 (defn avet?
   "Return true if a triple for a shall be added to the
   AVET index."
-  [a]
-  (let [attr (get schema/system-attributes a)]
-    (boolean
-      (or (get attr schema/index)
-          (get attr schema/unique)))))
+  [aid]
+  (schema/has-avet? schema/system-schema aid))
 
 (defn vaet?
   "Return true if a triple for a shall be added to the
   VAET index."
   [a]
-  (= schema/type-ref
-     (get-in schema/system-attributes [a schema/value-type])))
+  (schema/ref? schema/system-schema a))
 
 (defn system-triples
   "Returns a sequence of system triples."
@@ -112,12 +109,12 @@
             (map (fn [[a v]]
                    [e a v])
                  attrs))
-          schema/system-attributes))
+          (schema/entities schema/system-schema)))
 
 (defn boot-tx-triples
   "Returns a sequence of triples for the bootstrap transaction."
   []
-  [[(id/eid schema/part-tx 0) schema/tx-instant 0]])
+  [[(id/eid sys/part-tx 0) sys/tx-instant 0]])
 
 (defn bootstrap-data!
   "Insert boot triples into the data table."

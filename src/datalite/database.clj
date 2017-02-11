@@ -3,6 +3,7 @@
             [datalite.id :as id]
             [datalite.schema :as schema]
             [datalite.sql :as sql]
+            [datalite.system :as sys]
             [datalite.util :as util :refer [s]]
             [datalite.valuetype :as vt]))
 
@@ -52,7 +53,7 @@
                     "AND ? BETWEEN ta AND tr "
                     "AND avet = 1 "
                     "LIMIT 1")
-                 [schema/ident (str kwd) (basis-t db)]))
+                 [sys/ident (str kwd) (basis-t db)]))
 
 (defn- unique->eid
   [^Database db a v]
@@ -81,7 +82,7 @@
                     " WHERE d.e = ? AND s.a = ?"
                     " AND ? BETWEEN d.ta AND d.tr"
                     " AND ? BETWEEN s.ta AND s.tr")
-                 [(long e) schema/value-type (basis-t db) (basis-t db)]
+                 [(long e) sys/value-type (basis-t db) (basis-t db)]
                  #(reduce (fn [m [a v vt]]
                             (assoc-multi m a (vt/coerce-read vt v)))
                           nil %)))
@@ -126,7 +127,7 @@
                           "unknown attribute"
                           {:val attr}))
       (let [am (attr-map db a)]
-        (when-not (get am schema/unique)
+        (when-not (get am sys/unique)
           (util/throw-error :db.error/invalid-lookup-ref
                             "lookup ref attribute is not :db/unique"
                             {:val attr}))

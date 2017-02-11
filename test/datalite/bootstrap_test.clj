@@ -1,7 +1,7 @@
 (ns datalite.bootstrap-test
   (:require [clojure.test :refer :all]
             [datalite.bootstrap :as b :refer :all]
-            [datalite.schema :refer [system-ids]])
+            [datalite.system :as sys])
   (:import [java.sql Connection DriverManager]))
 
 (defn- memory-connection
@@ -43,7 +43,7 @@
                 rs (.executeQuery stmt "SELECT * FROM head")]
       (is (false? (.next rs))))
     (bootstrap-head! conn)
-    (let [max-system-id (apply max (vals system-ids))]
+    (let [max-system-id (apply max (keys sys/entities))]
       (with-open [stmt (.createStatement conn)
                   rs (.executeQuery stmt "SELECT * FROM head")]
         (is (true? (.next rs)))
