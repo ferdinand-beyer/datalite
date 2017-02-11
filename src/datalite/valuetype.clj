@@ -1,6 +1,6 @@
 (ns datalite.valuetype
   (:require [datalite.schema :as schema])
-  (:import [clojure.lang Keyword]
+  (:import [clojure.lang BigInt Keyword]
            [java.math BigDecimal BigInteger]
            [java.util Date UUID]
            [java.net URI]))
@@ -28,11 +28,10 @@
     :read long
     :write long}
 
-  ; TODO: clojure.lang.BigInt?
    schema/type-bigint
-   {:class BigInteger
-    :read (fn [^String s] (BigInteger. s))
-    :write (fn [^BigInteger i] (.toString i))}
+   {:class BigInt
+    :read (fn [s] (bigint s))
+    :write (fn [i] (.toString (bigint i)))}
 
    schema/type-float
    {:class Float
@@ -84,9 +83,12 @@
     (value-type [_] schema/type-string)
   Boolean
     (value-type [_] schema/type-boolean)
+  Integer
+    (value-type [_] schema/type-long)
   Long
     (value-type [_] schema/type-long)
-  ; TODO: clojure.lang.BigInt?
+  BigInt
+    (value-type [_] schema/type-bigint)
   BigInteger
     (value-type [_] schema/type-bigint)
   Float

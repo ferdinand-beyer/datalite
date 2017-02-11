@@ -18,8 +18,8 @@
    schema/type-float (float 3.1415)
    schema/type-double 3.1415
    schema/type-bytes (byte-array 10)
-   schema/type-bigint (BigInteger. "12345678901234567890")
-   schema/type-bigdec (BigDecimal. "1234567890.1234567890")
+   schema/type-bigint 12345678901234567890N
+   schema/type-bigdec 1234567890.1234567890M
    schema/type-uuid (UUID/randomUUID)
    schema/type-uri (URI. "https://github.com/ferdinand-beyer/datalite")})
 
