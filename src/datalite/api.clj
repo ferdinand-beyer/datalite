@@ -1,7 +1,8 @@
 (ns datalite.api
   (:refer-clojure :exclude [filter])
   (:require [datalite.connection :as conn]
-            [datalite.database :as db]))
+            [datalite.database :as db]
+            [datalite.entity :as ent]))
 
 ; TODO: Decide for each API function whether to support it, and
 ; give a reason if not/never.
@@ -26,8 +27,18 @@
 ;(def delete-database)
 (def entid)
 (def entid-at)
-(def entity)
-(def entity-db)
+
+(defn entity
+  "Returns a dynamic map of the entity's attributes for the
+  given id, ident or lookup ref."
+  [db eid]
+  (ent/entity db eid))
+
+(defn entity-db
+  "Returns the database value that is the basis for this entity."
+  [entity]
+  (ent/entity-db entity))
+
 (def filter)
 (def function)
 ;(def gc-storage)
@@ -61,7 +72,13 @@
 ;(def sync-schema)
 (def t->tx)
 (def tempid)
-(def touch)
+
+(defn touch
+  "Touches all of the attributes of the entity, including any component
+  entities recursively.  Returns the entity."
+  [entity]
+  (ent/touch entity))
+
 (def transact)
 (def transact-async)
 (def tx->t)

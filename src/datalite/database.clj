@@ -109,6 +109,32 @@
        (vt/coerce-write vt v)
        (basis-t db)])))
 
+(defn- schema-attr-reader
+  [schema entity]
+  (fn [attrs [a v vt]]
+    (let [attr-meta (schema/attrs schema a)
+          k (schema/ident attr-meta)
+          v (vt/coerce-read vt v)
+          v (if (schema/ref? attr-meta)
+              (or (schema/ident schema v)
+                  (entity v)
+                  v)
+              v)]
+      [(schema/ident attr-meta)
+       (if (schema/multival? attr-meta)
+         (conj (get attrs k #{}) v)
+         v)])))
+
+(defn entity-attrs
+  [db eid entity]
+  (sql/run-query
+    (sql-con db)
+    (s "SELECT a, v, vt FROM data"
+       " WHERE e = ?"
+       " AND ? BETWEEN ta AND tr")
+    [(long eid) (basis-t db)]
+    (partial into {} (map-attrs (schema-attr-reader (schema db) entity)))))
+
 ;;;; Entity Identifier
 
 (defprotocol Identifier
