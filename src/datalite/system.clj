@@ -7,36 +7,41 @@
 
 (def ident 10)
 
-(def type-ref 11)
-(def type-keyword 12)
-(def type-long 13)
-(def type-string 14)
-(def type-boolean 15)
-(def type-instant 16)
-(def type-fn 17)
-(def type-float 18)
-(def type-double 19)
-(def type-bytes 20)
-(def type-bigint 21)
-(def type-bigdec 22)
-(def type-uuid 23)
-(def type-uri 24)
+(def install-partition 11)
+(def install-value-type 12)
+(def install-attribute 13)
+(def install-function 14)
 
-(def cardinality-one 25)
-(def cardinality-many 26)
+(def type-ref 20)
+(def type-keyword 21)
+(def type-long 22)
+(def type-string 23)
+(def type-boolean 24)
+(def type-instant 25)
+(def type-fn 26)
+(def type-float 27)
+(def type-double 28)
+(def type-bytes 29)
+(def type-bigint 30)
+(def type-bigdec 31)
+(def type-uuid 32)
+(def type-uri 33)
 
-(def unique-value 27)
-(def unique-identity 28)
+(def cardinality-one 35)
+(def cardinality-many 36)
 
-(def value-type 29)
-(def cardinality 30)
-(def unique 31)
-(def index 32)
-(def fulltext 33)
-(def is-component 34)
-(def no-history 35)
-(def tx-instant 36)
-(def doc 37)
+(def unique-value 37)
+(def unique-identity 38)
+
+(def value-type 40)
+(def cardinality 41)
+(def unique 42)
+(def index 43)
+(def fulltext 44)
+(def is-component 45)
+(def no-history 46)
+(def tx-instant 47)
+(def doc 48)
 
 (def entities
   {part-db
@@ -66,6 +71,38 @@
     cardinality cardinality-one
     unique unique-identity
     doc "Attribute used to uniquely name an entity."}
+
+   install-partition
+   {ident :db.install/partition
+    value-type type-ref
+    cardinality cardinality-many
+    doc (str "System attribute with type :db.type/ref. Asserting this "
+             "attribute on :db.part/db with value v will install v as "
+             "a partition.")}
+
+   install-value-type
+   {ident :db.install/valueType
+    value-type type-ref
+    cardinality cardinality-many
+    doc (str "System attribute with type :db.type/ref. Asserting this "
+             "attribute on :db.part/db with value v will install v as "
+             "a value type.")}
+
+   install-attribute
+   {ident :db.install/attribute
+    value-type type-ref
+    cardinality cardinality-many
+    doc (str "System attribute with type :db.type/ref. Asserting this "
+             "attribute on :db.part/db with value v will install v as "
+             "an attribute.")}
+
+   install-function
+   {ident :db.install/function
+    value-type type-ref
+    cardinality cardinality-many
+    doc (str "System attribute with type :db.type/ref. Asserting this "
+             "attribute on :db.part/db with value v will install v as "
+             "a data function.")}
 
    type-ref
    {ident :db.type/ref
