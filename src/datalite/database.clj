@@ -25,16 +25,12 @@
   "Returns a transducer transforming [e a v vt] tuples into pairs
   [e attrs] according to schema."
   [schema]
-  (let [xf (partition-by first)
-        f (attr-map-reduct schema)]
-    (fn [rf]
-      (xf
-        (fn
-          ([] (rf))
-          ([result] (rf result))
-          ([result tuples]
-           (rf result [(ffirst tuples)
-                       (transduce (map rest) f tuples)])))))))
+  (comp (partition-by first)
+        (map (fn [tuples]
+               [(ffirst tuples)
+                (transduce (map rest)
+                           (attr-map-reduct schema)
+                           tuples)]))))
 
 ;;;; Database value
 
