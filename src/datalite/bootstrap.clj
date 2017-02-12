@@ -4,7 +4,8 @@
             [datalite.schema :as schema]
             [datalite.sql :as sql]
             [datalite.system :as sys]
-            [datalite.util :refer [s]]))
+            [datalite.util :refer [s]]
+            [datalite.valuetype :as vt]))
 
 (def initial-s 100)
 (def initial-t 1000)
@@ -12,31 +13,29 @@
 (def ^:private schema-version 1)
 
 (def ^:private schema-sql
-  ["CREATE TABLE meta (
-      k TEXT NOT NULL PRIMARY KEY,
-      v NOT NULL
-    )"
-
-    "CREATE TABLE head (
-      s INTEGER NOT NULL,
-      t INTEGER NOT NULL
-    )"
-
-    "CREATE TABLE data (
-      d INTEGER NOT NULL PRIMARY KEY,
-      e INTEGER NOT NULL,
-      a INTEGER NOT NULL,
-      v NOT NULL,
-      ta INTEGER NOT NULL,
-      tr INTEGER NOT NULL,
-      avet INTEGER NOT NULL,
-      vaet INTEGER NOT NULL
-    )"
-
-    "CREATE INDEX idx_data_eavt ON data(e, a, v, tr, ta)"
-    "CREATE INDEX idx_data_aevt ON data(a, e, v, tr, ta)"
-    "CREATE INDEX idx_data_avet ON data(a, v, e, tr, ta, avet) WHERE avet = 1"
-    "CREATE INDEX idx_data_vaet ON data(v, a, e, tr, ta, vaet) WHERE vaet = 1"])
+  [(str "CREATE TABLE meta ("
+        " k TEXT NOT NULL PRIMARY KEY,"
+        " v NOT NULL"
+        ")")
+   (str "CREATE TABLE head ("
+        " s INTEGER NOT NULL,"
+        " t INTEGER NOT NULL"
+        ")")
+   (str "CREATE TABLE data ("
+        " e INTEGER NOT NULL,"
+        " a INTEGER NOT NULL,"
+        " v NOT NULL,"
+        " vt INTEGER NOT NULL,"
+        " ta INTEGER NOT NULL,"
+        " tr INTEGER NOT NULL,"
+        " avet INTEGER NOT NULL"
+        ")")
+    "CREATE INDEX idx_data_eavt ON data(e, a, v, vt, tr, ta)"
+    "CREATE INDEX idx_data_aevt ON data(a, e, v, vt, tr, ta)"
+    "CREATE INDEX idx_data_avet ON data(a, v, e, vt, tr, ta, avet) WHERE avet = 1"
+    (str "CREATE INDEX idx_data_vaet"
+         " ON data(v, a, e, vt, tr, ta)"
+         " WHERE vt = " sys/type-ref)])
 
 (defn- sqlite-exists?
   [con type name]
@@ -78,61 +77,57 @@
   (and (schema-exists? con)
        (valid-version? con)))
 
-(defn bootstrap-meta!
-  "Bootstrap meta data."
+(defn populate-meta!
+  "Populate the meta table."
   [con]
   (sql/insert! con "meta" {:k :datalite/schema-version
                            :v schema-version}))
 
-(defn bootstrap-head!
-  "Bootstrap initial head values."
+(defn populate-head!
+  "Populate the head table."
   [con]
   (sql/insert! con "head" {:s initial-s
                            :t initial-t}))
 
-(defn avet?
+(defn- avet?
   "Return true if a triple for a shall be added to the
   AVET index."
   [aid]
   (schema/has-avet? schema/system-schema aid))
 
-(defn vaet?
-  "Return true if a triple for a shall be added to the
-  VAET index."
-  [a]
-  (schema/ref? schema/system-schema a))
-
-(defn system-triples
-  "Returns a sequence of system triples."
-  []
+(defn- schema-tuples
+  "Returns a sequence of tuples for schema."
+  [schema]
   (mapcat (fn [[e attrs]]
             (map (fn [[a v]]
-                   [e a v])
+                   (let [vt (schema/value-type schema a)]
+                     [e a (vt/coerce-write vt v) vt]))
                  attrs))
-          (schema/entities schema/system-schema)))
+          (schema/entities schema)))
 
-(defn boot-tx-triples
-  "Returns a sequence of triples for the bootstrap transaction."
+(defn- boot-tx-tuples
+  "Returns a sequence of tuples for the bootstrap transaction."
   []
-  [[(id/eid sys/part-tx 0) sys/tx-instant 0]])
+  [[(id/eid sys/part-tx 0) sys/tx-instant 0 sys/type-instant]])
 
-(defn bootstrap-data!
-  "Insert boot triples into the data table."
+(defn populate-data!
+  "Populate the data table."
   [con]
-  (let [triples (concat (system-triples) (boot-tx-triples))
+  (let [tuples (concat (schema-tuples schema/system-schema)
+                       (boot-tx-tuples))
         ta 0
         tr id/max-t]
-    (sql/insert-many! con "data" [:e :a :v :ta :tr :avet :vaet]
-                      (map (fn [[e a v]]
-                             [e a v ta tr (avet? a) (vaet? a)])
-                           triples))))
+    (sql/insert-many! con "data" [:e :a :v :vt :ta :tr :avet]
+                      (map (fn [[e a v vt]]
+                             [e a v vt ta tr (avet? a)])
+                           tuples))))
 
 (defn bootstrap!
   "Bootstrap an empty SQLite database."
   [con]
   (doto con
     (create-schema!)
-    (bootstrap-meta!)
-    (bootstrap-head!)
-    (bootstrap-data!)))
+    (populate-meta!)
+    (populate-head!)
+    (populate-data!)))
 

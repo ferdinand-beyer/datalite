@@ -1,9 +1,10 @@
-(ns datalite.util)
+(ns datalite.util
+  (:require [clojure.string :as s]))
 
 (defmacro s
   "Concatenates strings at compile time."
   [& strings]
-  (apply str strings))
+  (s/join strings))
 
 (defn throw-error
   ([err]

@@ -59,10 +59,10 @@
   [^Database db a v]
   (sql/query-val (sql-con db)
                  (s "SELECT e FROM data "
-                        "WHERE a = ? AND v = ? "
-                        "AND ? BETWEEN ta AND tr "
-                        "AND avet = 1 "
-                        "LIMIT 1")
+                    "WHERE a = ? AND v = ? "
+                    "AND ? BETWEEN ta AND tr "
+                    "AND avet = 1 "
+                    "LIMIT 1")
                  [(long a) v (basis-t db)]))
 
 (defn- assoc-multi
@@ -77,12 +77,10 @@
 (defn attr-map
   [^Database db e]
   (sql/run-query (sql-con db)
-                 (s "SELECT d.a, d.v, s.v FROM data d"
-                    " INNER JOIN data s ON d.a = s.e"
-                    " WHERE d.e = ? AND s.a = ?"
-                    " AND ? BETWEEN d.ta AND d.tr"
-                    " AND ? BETWEEN s.ta AND s.tr")
-                 [(long e) sys/value-type (basis-t db) (basis-t db)]
+                 (s "SELECT a, v, vt FROM data"
+                    " WHERE e = ?"
+                    " AND ? BETWEEN ta AND tr")
+                 [(long e) (basis-t db)]
                  #(reduce (fn [m [a v vt]]
                             (assoc-multi m a (vt/coerce-read vt v)))
                           nil %)))

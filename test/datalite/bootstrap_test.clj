@@ -9,42 +9,42 @@
   (DriverManager/getConnection "jdbc:sqlite::memory:"))
 
 (defn- exec
-  [conn sql]
-  (with-open [stmt (.createStatement conn)]
+  [con sql]
+  (with-open [stmt (.createStatement con)]
     (.execute stmt sql)))
 
 (deftest table-exists-test
-  (let [conn (memory-connection)]
-    (exec conn "CREATE TABLE tbl1 (col INTEGER)")
-    (is (true? (@#'b/table-exists? conn "tbl1")))
-    (is (false? (@#'b/table-exists? conn "tbl2")))))
+  (let [con (memory-connection)]
+    (exec con "CREATE TABLE tbl1 (col INTEGER)")
+    (is (true? (@#'b/table-exists? con "tbl1")))
+    (is (false? (@#'b/table-exists? con "tbl2")))))
 
 (deftest schema-creation-test
-  (let [conn (memory-connection)]
-    (is (false? (schema-exists? conn)))
-    (create-schema! conn)
-    (is (true? (schema-exists? conn)))))
+  (let [con (memory-connection)]
+    (is (false? (schema-exists? con)))
+    (create-schema! con)
+    (is (true? (schema-exists? con)))))
 
 (deftest empty-schema-invalid-version-test
-  (let [conn (memory-connection)]
-    (create-schema! conn)
-    (is (false? (valid-version? conn)))))
+  (let [con (memory-connection)]
+    (create-schema! con)
+    (is (false? (valid-version? con)))))
 
-(deftest bootstrap-meta-test
-  (let [conn (memory-connection)]
-    (create-schema! conn)
-    (bootstrap-meta! conn)
-    (is (true? (valid-version? conn)))))
+(deftest populate-meta-test
+  (let [con (memory-connection)]
+    (create-schema! con)
+    (populate-meta! con)
+    (is (true? (valid-version? con)))))
 
 (deftest initial-head-numbers-test
-  (let [conn (memory-connection)]
-    (create-schema! conn)
-    (with-open [stmt (.createStatement conn)
+  (let [con (memory-connection)]
+    (create-schema! con)
+    (with-open [stmt (.createStatement con)
                 rs (.executeQuery stmt "SELECT * FROM head")]
       (is (false? (.next rs))))
-    (bootstrap-head! conn)
+    (populate-head! con)
     (let [max-system-id (apply max (keys sys/entities))]
-      (with-open [stmt (.createStatement conn)
+      (with-open [stmt (.createStatement con)
                   rs (.executeQuery stmt "SELECT * FROM head")]
         (is (true? (.next rs)))
         (is (> (.getLong rs 1) max-system-id))

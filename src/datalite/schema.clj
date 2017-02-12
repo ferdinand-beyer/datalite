@@ -37,6 +37,11 @@
   [schema eid]
   (attr schema eid sys/ident))
 
+(defn value-type
+  "Returns the value type for an entity id."
+  [schema eid]
+  (attr schema eid sys/value-type))
+
 (def attr-required
   "Attributes required for attribute entities."
   #{sys/ident sys/value-type sys/cardinality})
