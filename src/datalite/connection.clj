@@ -2,11 +2,10 @@
   (:require [datalite.bootstrap :as boot]
             [datalite.sql :as sql]
             [datalite.util :as util])
-  (:import [java.sql Connection]
-           [org.sqlite SQLiteConfig SQLiteConfig$TransactionMode]))
+  (:import [org.sqlite SQLiteConfig SQLiteConfig$TransactionMode]))
 
-(defn- ^SQLiteConfig sqlite-config
-  []
+(defn- sqlite-config
+  ^SQLiteConfig []
   (doto (SQLiteConfig.)
     (.setTransactionMode SQLiteConfig$TransactionMode/IMMEDIATE)))
 
@@ -15,13 +14,13 @@
   (.createConnection (sqlite-config)
                      (str "jdbc:sqlite:" filename)))
 
-(deftype DbConnection [^Connection sql-con]
+(deftype Connection [^java.sql.Connection sql-con]
   java.lang.AutoCloseable
   (close [this]
     (.close sql-con)))
 
-(defn ^Connection sql-con
-  [^DbConnection conn]
+(defn sql-con
+  ^java.sql.Connection [^Connection conn]
   (.sql-con conn))
 
 (defn connect
@@ -31,7 +30,7 @@
    (let [con (sqlite-connect ":memory:")]
      (sql/with-tx con
        (boot/bootstrap! con))
-     (->DbConnection con)))
+     (->Connection con)))
   ([filename]
    (let [con (sqlite-connect filename)]
      (sql/with-tx con
@@ -41,10 +40,10 @@
                              "Unsupported schema in existing database"
                              {:filename filename}))
          (boot/bootstrap! con)))
-     (->DbConnection con))))
+     (->Connection con))))
 
 (defn close
   "Closes the given connection."
-  [^DbConnection conn]
+  [^Connection conn]
   (.close conn))
 

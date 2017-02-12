@@ -13,7 +13,7 @@
   [conn]
   (sql/query-val (conn/sql-con conn) "SELECT t FROM head LIMIT 1"))
 
-(deftype Database [^datalite.connection.DbConnection conn
+(deftype Database [^datalite.connection.Connection conn
                    basis-t])
 
 (defn db
