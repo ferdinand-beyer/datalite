@@ -4,7 +4,7 @@
             [datalite.database :as db :refer :all]
             [datalite.schema :as schema]
             [datalite.system :as sys]
-            [datalite.test.util]))
+            [datalite.test-util]))
 
 (deftest resolve-integer-entity-id-test
   (let [conn (conn/connect)

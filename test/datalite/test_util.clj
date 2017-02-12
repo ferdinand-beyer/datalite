@@ -1,6 +1,8 @@
-(ns datalite.test.util
+(ns datalite.test-util
   "Test utilities."
-  (:require [clojure.test :as test]))
+  (:require [clojure.test :as test])
+  (:import [java.nio.file Files Path]
+           [java.nio.file.attribute FileAttribute]))
 
 (defn ex-info-match?
   "Returns true if all entries in match are present in (ex-data ex)."
@@ -25,4 +27,10 @@
               (test/do-report {:type :fail, :message ~msg,
                                :expected '~form, :actual e#}))
             e#))))
+
+(defn temp-dir
+  "Creates a temporary directory and returns the java.nio.file.Path
+  for it."
+  [prefix]
+  (Files/createTempDirectory prefix (make-array FileAttribute 0)))
 

@@ -1,7 +1,7 @@
 (ns datalite.sql-test
   (:require [clojure.test :refer :all]
             [datalite.sql :refer :all]
-            [datalite.test.util])
+            [datalite.test-util])
   (:import [java.sql Connection DriverManager]))
 
 (defn connect

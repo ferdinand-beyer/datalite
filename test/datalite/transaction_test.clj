@@ -4,7 +4,7 @@
             [datalite.database :as db]
             [datalite.schema :as schema]
             [datalite.system :as sys]
-            [datalite.test.util]
+            [datalite.test-util]
             [datalite.transaction :as dt :refer :all]))
 
 (defn collect-tx-data

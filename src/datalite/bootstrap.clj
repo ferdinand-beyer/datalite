@@ -47,14 +47,14 @@
 
 (defn- table-exists?
   "Returns true if a table with name table-name exists in conn."
-  [conn table-name]
-  (sqlite-exists? conn "table" table-name))
+  [con table-name]
+  (sqlite-exists? con "table" table-name))
 
 (defn schema-exists?
   "Returns true if it looks like a Datalite schema exists in
   the SQLite database."
-  [conn]
-  (table-exists? conn "meta"))
+  [con]
+  (table-exists? con "meta"))
 
 (defn create-schema!
   "Create the SQLite database schema in conn."
@@ -70,13 +70,13 @@
 (defn valid-version?
   "Returns true if the schema version in the SQLite database
   is valid."
-  [conn]
-  (= schema-version (get-meta conn :datalite/schema-version)))
+  [con]
+  (= schema-version (get-meta con :datalite/schema-version)))
 
 (defn valid-schema?
-  [conn]
-  (and (schema-exists? conn)
-       (valid-version? conn)))
+  [con]
+  (and (schema-exists? con)
+       (valid-version? con)))
 
 (defn bootstrap-meta!
   "Bootstrap meta data."
@@ -129,8 +129,8 @@
 
 (defn bootstrap!
   "Bootstrap an empty SQLite database."
-  [conn]
-  (doto conn
+  [con]
+  (doto con
     (create-schema!)
     (bootstrap-meta!)
     (bootstrap-head!)
