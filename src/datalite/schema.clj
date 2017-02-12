@@ -65,6 +65,11 @@
   [schema eid]
   (= sys/type-ref (attr schema eid sys/value-type)))
 
+(defn unique
+  "Returns the :db/unique value for an attribute, which may be nil."
+  [schema eid]
+  (attr schema eid sys/unique))
+
 (defn has-avet?
   "Returns true if eid identifies an attribute in the AVET index."
   [schema eid]

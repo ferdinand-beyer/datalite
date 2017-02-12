@@ -6,6 +6,17 @@
             [datalite.system :as sys]
             [datalite.test-util]))
 
+(deftest ^:integration fetch-schema-entities-test
+  (let [conn (conn/connect)
+        entities (@#'db/fetch-schema-entities conn 0)]
+    (is (map? entities))
+    (is (= (set (keys sys/entities))
+           (set (keys entities))))
+    (doseq [eid (keys entities)]
+      (testing (str "attributes of entity " eid)
+        (is (= (get sys/entities eid)
+               (get entities eid)))))))
+
 (deftest resolve-integer-entity-id-test
   (let [conn (conn/connect)
         db (db conn)]

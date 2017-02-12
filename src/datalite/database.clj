@@ -7,21 +7,64 @@
             [datalite.util :as util :refer [s]]
             [datalite.valuetype :as vt]))
 
+(defn- attr-map-reduct
+  "Returns a reduct function building a integer-keyed map
+  from [a v vt] tuples according to schema."
+  [schema]
+  (fn
+    ([] (transient {}))
+    ([attrs] (persistent! attrs))
+    ([attrs [a v vt]]
+     (let [v (vt/coerce-read vt v)]
+       (assoc! attrs a
+               (if (schema/multival? schema a)
+                 (conj (get attrs a #{}) v)
+                 v))))))
+
+(defn- make-attr-maps
+  "Returns a transducer transforming [e a v vt] tuples into pairs
+  [e attrs] according to schema."
+  [schema]
+  (let [xf (partition-by first)
+        f (attr-map-reduct schema)]
+    (fn [rf]
+      (xf
+        (fn
+          ([] (rf))
+          ([result] (rf result))
+          ([result tuples]
+           (rf result [(ffirst tuples)
+                       (transduce (map rest) f tuples)])))))))
+
 ;;;; Database value
 
 (defn- current-t
   [conn]
   (sql/query-val (conn/sql-con conn) "SELECT t FROM head LIMIT 1"))
 
+(defn- fetch-schema-entities
+  "Fetch a schema entities map from the database."
+  [conn t]
+  (sql/run-query
+    (conn/sql-con conn)
+    (s "SELECT e, a, v, vt FROM data"
+       " WHERE e <= ?"
+       " AND ? BETWEEN ta AND tr"
+       " ORDER BY e, a")
+    [id/max-t t]
+    (partial into {} (make-attr-maps schema/system-schema))))
+
 (deftype Database [^datalite.connection.Connection conn
-                   basis-t])
+                   basis-t
+                   schema])
 
 (defn db
   "Constructs a database value."
   ([conn]
    (db conn (current-t conn)))
   ([conn basis-t]
-   (->Database conn basis-t)))
+   (->Database conn basis-t
+               (schema/schema (fetch-schema-entities conn basis-t)))))
 
 (defn basis-t
   [^Database db]
@@ -32,66 +75,47 @@
   ^java.sql.Connection [^Database db]
   (conn/sql-con (.conn db)))
 
+(defn schema
+  "Returns the Schema as seen by db."
+  [^Database db]
+  (.schema db))
+
 ;;;; Entity queries
 
 (defn- entity?
   "Returns true if the entity id e exists."
-  [^Database db e]
+  [db e]
   (some? (sql/query-val (sql-con db)
                         (s "SELECT e FROM data "
                            "WHERE e = ? AND ? BETWEEN ta AND tr "
                            "LIMIT 1")
                         [(long e) (basis-t db)])))
 
-; TODO: Protocols to get/set v with value-type hint
-
-(defn- ident->eid
-  [^Database db kwd]
-  (sql/query-val (sql-con db)
-                 (s "SELECT e FROM data "
-                    "WHERE a = ? AND v = ? "
-                    "AND ? BETWEEN ta AND tr "
-                    "AND avet = 1 "
-                    "LIMIT 1")
-                 [sys/ident (str kwd) (basis-t db)]))
-
-(defn- unique->eid
-  [^Database db a v]
-  (sql/query-val (sql-con db)
-                 (s "SELECT e FROM data "
-                    "WHERE a = ? AND v = ? "
-                    "AND ? BETWEEN ta AND tr "
-                    "AND avet = 1 "
-                    "LIMIT 1")
-                 [(long a) v (basis-t db)]))
-
-(defn- assoc-multi
-  [m k v]
-  (update m k (fn [old-v]
-                (if old-v
-                  (if (set? old-v)
-                    (conj old-v v)
-                    #{old-v v})
-                  v))))
+(defn- unique-lookup
+  "Looks up an entity by its value of an unique attribute."
+  [db a v]
+  (let [schema (schema db)
+        vt (schema/value-type schema a)]
+    (sql/query-val
+      (sql-con db)
+      (s "SELECT e FROM data "
+         "WHERE a = ? AND v = ? "
+         "AND ? BETWEEN ta AND tr "
+         "AND avet = 1 "
+         "LIMIT 1")
+      [(long a)
+       (vt/coerce-write vt v)
+       (basis-t db)])))
 
 (defn attr-map
-  [^Database db e]
-  (sql/run-query (sql-con db)
-                 (s "SELECT a, v, vt FROM data"
-                    " WHERE e = ?"
-                    " AND ? BETWEEN ta AND tr")
-                 [(long e) (basis-t db)]
-                 #(reduce (fn [m [a v vt]]
-                            (assoc-multi m a (vt/coerce-read vt v)))
-                          nil %)))
-
-;;;; Schema queries
-
-; TODO: Use schema/attr-info for system ids
-(defn attr-info
-  [db attrid]
-  (when-let [attrs (attr-map db attrid)]
-    (schema/attr-info attrid attrs)))
+  [db e]
+  (sql/run-query
+    (sql-con db)
+    (s "SELECT a, v, vt FROM data"
+       " WHERE e = ?"
+       " AND ? BETWEEN ta AND tr")
+    [(long e) (basis-t db)]
+    (partial transduce identity (attr-map-reduct (schema db)))))
 
 ;;;; Entity Identifier
 
@@ -110,7 +134,7 @@
 
   clojure.lang.Keyword
   (-resolve-id [kwd db]
-    (ident->eid db kwd))
+    (schema/id (schema db) kwd))
 
   clojure.lang.Sequential
   (-resolve-id [lookup-ref db]
@@ -119,15 +143,15 @@
                         "lookup refs must be vectors with exactly 2 elements"
                         {:val lookup-ref}))
     (let [[attr v] lookup-ref
-          a (-resolve-id attr db)]
-      (when-not a
+          aid (-resolve-id attr db)]
+      (when-not aid
         (util/throw-error :db.error/invalid-lookup-ref
                           "unknown attribute"
                           {:val attr}))
-      (let [am (attr-map db a)]
-        (when-not (get am sys/unique)
-          (util/throw-error :db.error/invalid-lookup-ref
-                            "lookup ref attribute is not :db/unique"
-                            {:val attr}))
-        (unique->eid db a v)))))
+
+      (when-not (schema/unique (schema db) aid)
+        (util/throw-error :db.error/invalid-lookup-ref
+                          "lookup ref attribute is not :db/unique"
+                          {:val attr}))
+      (unique-lookup db aid v))))
 

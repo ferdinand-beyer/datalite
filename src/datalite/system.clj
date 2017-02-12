@@ -56,7 +56,6 @@
                         value-type cardinality unique index
                         fulltext is-component no-history tx-instant
                         doc}
-    install-function #{}
     doc (str "Name of the system partition. The system partition "
              "includes the core of Datalite, as well as user "
              "schemas: type definitions, attribute definitions, "
