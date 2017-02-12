@@ -46,6 +46,17 @@
 (def entities
   {part-db
    {ident :db.part/db
+    install-partition #{part-db part-tx part-user}
+    install-value-type #{type-ref type-keyword type-long type-string
+                         type-boolean type-instant #_type-fn type-float
+                         type-double type-bytes type-bigint type-bigdec
+                         type-uuid type-uri}
+    install-attribute #{ident install-partition install-value-type
+                        install-attribute install-function
+                        value-type cardinality unique index
+                        fulltext is-component no-history tx-instant
+                        doc}
+    install-function #{}
     doc (str "Name of the system partition. The system partition "
              "includes the core of Datalite, as well as user "
              "schemas: type definitions, attribute definitions, "
@@ -239,12 +250,14 @@
    fulltext
    {ident :db/fulltext
     value-type type-boolean
+    cardinality cardinality-one
     doc (str "Property of an attribute. If true, create a fulltext search "
              "index for the attribute. Defaults to false.")}
 
    is-component
    {ident :db/isComponent
     value-type type-boolean
+    cardinality cardinality-one
     doc (str "Property of attribute whose value type is :db.type/ref. "
              "If true, then the attribute is a component of the entity "
              "referencing it. When you query for an entire entity, "
@@ -253,12 +266,14 @@
    no-history
    {ident :db/noHistory
     value-type type-boolean
+    cardinality cardinality-one
     doc (str "Property of an attribute. If true, past values of the "
              "attribute are not retained after indexing. Defaults to false.")}
 
    tx-instant
    {ident :db/txInstant
     value-type type-instant
+    cardinality cardinality-one
     index true
     doc (str "Attribute whose value is a :db.type/instant. A :db/txInstant "
              "is recorded automatically with every transaction.")}
@@ -266,6 +281,7 @@
    doc
    {ident :db/doc
     value-type type-string
+    cardinality cardinality-one
     fulltext true
     doc "Documentation string for an entity."}})
 
