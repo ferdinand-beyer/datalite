@@ -2,6 +2,7 @@
   (:require [datalite.database :as db]
             [datalite.connection :as conn]
             [datalite.id :as id]
+            [datalite.schema :as schema]
             [datalite.system :as sys]
             [datalite.sql :as sql]
             [datalite.util :as util]
@@ -65,7 +66,6 @@
      :t (inc t)
      :tx (id/eid sys/part-tx t)
      :ids {}
-     :attrs {}
      :tempids #{}
      :datoms []
      :ops []}))
@@ -82,24 +82,6 @@
         (util/throw-error :db.error/not-an-entity
                           "could not resolve entity identifier"
                           {:val id}))))
-
-(defn- attr?
-  [am]
-  (and (contains? am sys/ident)
-       (contains? am sys/value-type)
-       (contains? am sys/cardinality)))
-
-(defn- resolve-attr
-  [tx attr]
-  (let [[tx id] (resolve-id tx attr)]
-    (if-let [am (get-in tx [:attrs id])]
-      [tx id am]
-      (let [am (db/attr-map (:db tx) id)]
-        (if (attr? am)
-          [(update tx :attrs assoc id am) id am]
-          (util/throw-error :db.error/not-an-attribute
-                            "supplied value is not an attribute"
-                            {:val attr}))))))
 
 ;;;; Transaction data transducers
 
@@ -167,8 +149,12 @@
   (fn
     ([tx] (rf tx))
     ([tx [op e a v :as form]]
-     (let [[tx id am] (resolve-attr tx a)]
-       (rf tx [op e id v])))))
+     (let [[tx aid] (resolve-id tx a)]
+       (when-not (schema/attr? (db/schema (:db tx)) aid)
+         (util/throw-error :db.error/not-an-attribute
+                           "supplied value is not an attribute"
+                           {:val a}))
+       (rf tx [op e aid v])))))
 
 (defn resolve-entities
   "Transducer resolving entity identifiers in e position."

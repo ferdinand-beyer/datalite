@@ -74,17 +74,6 @@
     (testing "resolved identifier is cached in tx"
       (is (= {:db/ident sys/ident}
              (:ids (rf tx [:db/add "foo" :db/ident :foo])))))
-    (testing "attribute info is cached"
-      (is (contains? (:attrs (rf tx [:db/add "foo" :db/ident :foo]))
-                     sys/ident)))
-    (testing "cache is used for resolution"
-      (is (= [[:db/add 1 sys/doc 3]]
-             (-> tx
-                 (update :ids assoc :foo sys/doc)
-                 (update :attrs assoc sys/doc
-                         (schema/attrs schema/system-schema sys/doc))
-                 (rf [:db/add 1 :foo 3])
-                 :tx-data))))
     (testing "non-attribute entities are not accepted"
       (is (thrown-info?
             {:db/error :db.error/not-an-attribute

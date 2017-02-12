@@ -7,30 +7,36 @@
             [datalite.util :as util :refer [s]]
             [datalite.valuetype :as vt]))
 
-(defn- attr-map-reduct
-  "Returns a reduct function building a integer-keyed map
-  from [a v vt] tuples according to schema."
-  [schema]
-  (fn
-    ([] (transient {}))
-    ([attrs] (persistent! attrs))
-    ([attrs [a v vt]]
-     (let [v (vt/coerce-read vt v)]
-       (assoc! attrs a
-               (if (schema/multival? schema a)
-                 (conj (get attrs a #{}) v)
-                 v))))))
+(defn- read-attr
+  "Returns a key-value pair for a database tuple."
+  [attrs [a v vt]]
+  (let [v (vt/coerce-read vt v)]
+    [a (if-let [old-v (get attrs a)]
+         (if (coll? old-v)
+           (conj old-v v)
+           #{old-v v})
+         v)]))
 
-(defn- make-attr-maps
+(defn- map-attrs
+  "Returns a transducer that calls (f result input)."
+  [f]
+  (fn [rf]
+    (fn
+      ([] (rf))
+      ([attrs] (rf attrs))
+      ([attrs tuple]
+       (rf attrs (f attrs tuple))))))
+
+(def ^:private make-attr-maps
   "Returns a transducer transforming [e a v vt] tuples into pairs
   [e attrs] according to schema."
-  [schema]
   (comp (partition-by first)
         (map (fn [tuples]
                [(ffirst tuples)
-                (transduce (map rest)
-                           (attr-map-reduct schema)
-                           tuples)]))))
+                (into {}
+                      (comp (map #(subvec % 1))
+                            (map-attrs read-attr))
+                      tuples)]))))
 
 ;;;; Database value
 
@@ -48,7 +54,7 @@
        " AND ? BETWEEN ta AND tr"
        " ORDER BY e, a")
     [id/max-t t]
-    (partial into {} (make-attr-maps schema/system-schema))))
+    (partial into {} make-attr-maps)))
 
 (deftype Database [^datalite.connection.Connection conn
                    basis-t
@@ -102,16 +108,6 @@
       [(long a)
        (vt/coerce-write vt v)
        (basis-t db)])))
-
-(defn attr-map
-  [db e]
-  (sql/run-query
-    (sql-con db)
-    (s "SELECT a, v, vt FROM data"
-       " WHERE e = ?"
-       " AND ? BETWEEN ta AND tr")
-    [(long e) (basis-t db)]
-    (partial transduce identity (attr-map-reduct (schema db)))))
 
 ;;;; Entity Identifier
 
