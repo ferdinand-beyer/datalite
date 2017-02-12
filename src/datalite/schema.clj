@@ -2,6 +2,10 @@
   (:require [clojure.set :refer [map-invert]]
             [datalite.system :as sys]))
 
+(def ^:private attr-keys
+  "Attributes required for attribute entities."
+  #{sys/ident sys/value-type sys/cardinality})
+
 (deftype Schema [entities ids])
 
 (defn schema
@@ -11,6 +15,10 @@
                             [(get attrs sys/ident) id])
                           entities))]
     (->Schema entities ids)))
+
+(def system-schema
+  "Schema of system entities."
+  (schema sys/entities))
 
 (defn entities
   "Returns a map of entities and their attributes."
@@ -42,18 +50,6 @@
   [schema eid]
   (attr schema eid sys/value-type))
 
-(def attr-required
-  "Attributes required for attribute entities."
-  #{sys/ident sys/value-type sys/cardinality})
-
-(defn attr?
-  "Returns true if the entity identified by eid is
-  an attribute."
-  [schema eid]
-  (if-let [attrs (attrs schema eid)]
-    (every? (set (keys attrs)) attr-required)
-    false))
-
 (defn multival?
   "Returns true if eid identifies a :db.cardinality/many attribute."
   [schema eid]
@@ -76,27 +72,36 @@
   (let [attrs (attrs schema eid)]
     (boolean (some attrs [sys/index sys/unique]))))
 
-(def system-schema
-  "Schema of system entities."
-  (schema sys/entities))
+(defn- all-attr-keys?
+  [attrs]
+  (every? (set (keys attrs)) attr-keys))
 
-;; TODO: Define on schema!
+(defn attr?
+  "Returns true if the entity identified by eid is
+  an attribute."
+  [schema eid]
+  (if-let [attrs (attrs schema eid)]
+    (all-attr-keys? attrs)
+    false))
+
 (defn attr-info
-  ([id]
-   (when-let [attrs (attrs system-schema id)]
-     (attr-info id attrs)))
-  ([id attrs]
-   (when-let [vt (get attrs sys/value-type)]
-     {:id id
-      :ident (get attrs sys/ident)
-      :cardinality (ident system-schema (get attrs sys/cardinality))
-      :value-type (ident system-schema vt)
-      :unique (when-let [u (get attrs sys/unique)]
-                (ident system-schema u))
-      :indexed (get attrs sys/index false)
-      :has-avet (boolean (or (get attrs sys/index)
-                             (get attrs sys/unique)))
-      :no-history (get attrs sys/no-history false)
-      :is-component (get attrs sys/is-component false)
-      :fulltext (get attrs sys/fulltext false)})))
+  "Returns information about the attribute with the given id.
+  Supported keys are:
+
+  :id, :ident, :cardinality, :value-type, :unique, :indexed, :has-avet,
+  :no-history, :is-component, :fulltext"
+  [schema aid]
+  (when-let [attrs (attrs schema aid)]
+    (when (all-attr-keys? attrs)
+      {:id aid
+       :ident (get attrs sys/ident)
+       :cardinality (ident schema (get attrs sys/cardinality))
+       :value-type (ident schema (get attrs sys/value-type))
+       :unique (when-let [u (get attrs sys/unique)]
+                 (ident schema u))
+       :indexed (get attrs sys/index false)
+       :has-avet (boolean (some attrs [sys/index sys/unique]))
+       :no-history (get attrs sys/no-history false)
+       :is-component (get attrs sys/is-component false)
+       :fulltext (get attrs sys/fulltext false)})))
 

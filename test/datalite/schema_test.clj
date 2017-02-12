@@ -4,7 +4,7 @@
             [datalite.system :as sys]))
 
 (deftest attr-info-test
-  (let [attr (attr-info sys/ident)]
+  (let [attr (attr-info system-schema sys/ident)]
     (is (= sys/ident (:id attr)))
     (is (= :db/ident (:ident attr)))
     (is (= :db.cardinality/one (:cardinality attr)))
