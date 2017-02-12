@@ -51,3 +51,25 @@
         (is (= 1000 (.getLong rs 2)))
         (is (false? (.next rs)))))))
 
+(deftest schema-entity-tuples-test
+  (let [schema-tuples @#'b/schema-tuples]
+    (is (= [] (schema-tuples {})))
+    (is (= [[1 2 3]]
+           (schema-tuples {1 {2 3}})))
+    (is (= [[:e :a1 1]
+            [:e :a2 2]]
+           (schema-tuples {:e {:a1 1, :a2 2}})))
+    (is (= [[:e1 :a1 1]
+            [:e1 :a2 2]
+            [:e2 :a1 3]]
+           (schema-tuples {:e1 {:a1 1, :a2 2}
+                           :e2 {:a1 3}})))
+    (is (= [[:e :a 1]
+            [:e :a 2]]
+           (schema-tuples {:e {:a [1 2]}})))
+    (is (= #{[:e :a 1]
+             [:f :b 2]
+             [:f :b 3]}
+           (set (schema-tuples {:e {:a 1}
+                                :f {:b #{2 3}}}))))))
+

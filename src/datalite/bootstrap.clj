@@ -89,37 +89,36 @@
   (sql/insert! con "head" {:s initial-s
                            :t initial-t}))
 
-(defn- avet?
-  "Return true if a triple for a shall be added to the
-  AVET index."
-  [aid]
-  (schema/has-avet? schema/system-schema aid))
-
 (defn- schema-tuples
-  "Returns a sequence of tuples for schema."
-  [schema]
+  "Returns a sequence of tuples for schema entities."
+  [entities]
   (mapcat (fn [[e attrs]]
-            (map (fn [[a v]]
-                   (let [vt (schema/value-type schema a)]
-                     [e a (vt/coerce-write vt v) vt]))
-                 attrs))
-          (schema/entities schema)))
+            (mapcat (fn [[a v]]
+                      (if (coll? v)
+                        (map (partial vector e a) v)
+                        [[e a v]]))
+                    attrs))
+          entities))
 
 (defn- boot-tx-tuples
   "Returns a sequence of tuples for the bootstrap transaction."
   []
-  [[(id/eid sys/part-tx 0) sys/tx-instant 0 sys/type-instant]])
+  [[(id/eid sys/part-tx 0) sys/tx-instant (java.util.Date. 0)]])
 
 (defn populate-data!
   "Populate the data table."
   [con]
-  (let [tuples (concat (schema-tuples schema/system-schema)
+  (let [schema schema/system-schema
+        tuples (concat (schema-tuples (schema/entities schema))
                        (boot-tx-tuples))
         ta 0
         tr id/max-t]
     (sql/insert-many! con "data" [:e :a :v :vt :ta :tr :avet]
-                      (map (fn [[e a v vt]]
-                             [e a v vt ta tr (avet? a)])
+                      (map (fn [[e a v]]
+                             (let [vt (schema/value-type schema a)
+                                   v (vt/coerce-write vt v)
+                                   avet (if (schema/has-avet? schema a) 1 0)]
+                               [e a v vt ta tr avet]))
                            tuples))))
 
 (defn bootstrap!
