@@ -35,54 +35,56 @@
   [^Schema schema eid]
   (get (.entities schema) eid))
 
-(defn attr
-  "Returns the value of an entity attribute."
-  [schema eid aid]
-  (get (attrs schema eid) aid))
+(defmacro ^:private defattr
+  "Define an attribute accessor function that can operate on
+  a schema and an attribute map."
+  [name doc-string binding & body]
+  {:pre [(vector? binding)
+         (= 1 (count binding))]}
+  `(defn ~name
+     {:arglists '([~'schema ~'eid]
+                  [~'attrs])
+      :doc ~doc-string}
+     ([schema# eid#]
+      (~name (attrs schema# eid#)))
+     (~binding ~@body)))
 
-(defn ident
+(defattr ident
   "Returns the ident for an entity id."
-  [schema eid]
-  (attr schema eid sys/ident))
+  [attrs]
+  (get attrs sys/ident))
 
-(defn value-type
+(defattr value-type
   "Returns the value type for an entity id."
-  [schema eid]
-  (attr schema eid sys/value-type))
+  [attrs]
+  (get attrs sys/value-type))
 
-(defn multival?
+(defattr multival?
   "Returns true if eid identifies a :db.cardinality/many attribute."
-  [schema eid]
-  (= sys/cardinality-many (attr schema eid sys/cardinality)))
+  [attrs]
+  (= sys/cardinality-many (get attrs sys/cardinality)))
 
-(defn ref?
+(defattr ref?
   "Returns true if eid identifies an attribute with :db.type/ref
   value type."
-  [schema eid]
-  (= sys/type-ref (attr schema eid sys/value-type)))
-
-(defn unique
-  "Returns the :db/unique value for an attribute, which may be nil."
-  [schema eid]
-  (attr schema eid sys/unique))
-
-(defn has-avet?
-  "Returns true if eid identifies an attribute in the AVET index."
-  [schema eid]
-  (let [attrs (attrs schema eid)]
-    (boolean (some attrs [sys/index sys/unique]))))
-
-(defn- all-attr-keys?
   [attrs]
-  (every? (set (keys attrs)) attr-keys))
+  (= sys/type-ref (get attrs sys/value-type)))
 
-(defn attr?
+(defattr unique
+  "Returns the :db/unique value for an attribute, which may be nil."
+  [attrs]
+  (get attrs sys/unique))
+
+(defattr has-avet?
+  "Returns true if eid identifies an attribute in the AVET index."
+  [attrs]
+  (boolean (some attrs [sys/index sys/unique])))
+
+(defattr attr?
   "Returns true if the entity identified by eid is
   an attribute."
-  [schema eid]
-  (if-let [attrs (attrs schema eid)]
-    (all-attr-keys? attrs)
-    false))
+  [attrs]
+  (every? (set (keys attrs)) attr-keys))
 
 (defn attr-info
   "Returns information about the attribute with the given id.
@@ -92,7 +94,7 @@
   :no-history, :is-component, :fulltext"
   [schema aid]
   (when-let [attrs (attrs schema aid)]
-    (when (all-attr-keys? attrs)
+    (when (attr? attrs)
       {:id aid
        :ident (get attrs sys/ident)
        :cardinality (ident schema (get attrs sys/cardinality))
@@ -100,7 +102,7 @@
        :unique (when-let [u (get attrs sys/unique)]
                  (ident schema u))
        :indexed (get attrs sys/index false)
-       :has-avet (boolean (some attrs [sys/index sys/unique]))
+       :has-avet (has-avet? attrs)
        :no-history (get attrs sys/no-history false)
        :is-component (get attrs sys/is-component false)
        :fulltext (get attrs sys/fulltext false)})))
