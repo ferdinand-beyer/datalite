@@ -1,8 +1,8 @@
 # Transactions
 
 The `transact` function is implemented as a process of transducers,
-transforming the `tx-data` sequence into transaction operations, with
-finally emit SQL and a transaction report.
+transforming the `tx-data` sequence into transaction operations, and
+finally emitting SQL and producing a transaction report.
 
 ## Transaction context
 
@@ -11,23 +11,25 @@ finally emit SQL and a transaction report.
 At first, the latest state of the database is captured in a transaction
 context.  This is a map that contains:
 
-* `:db` -- the latest database value that will become `:db-before` in
+* `:db` - the latest database value that will become `:db-before` in
   the transaction report.
-* `:t` -- the t value of the transaction, which is the `next-t` value of
+* `:t` - the t value of the transaction, which is the `next-t` value of
   `:db`.
-* `:tx` -- the id of the transaction entity, derived from `:t`.
-* `:tempids` -- a map of temporary ids to entity ids
+* `:tx` - the id of the transaction entity, derived from `:t`.
+* `:instant` - the wall clock time at the start of the transaction
+  processing
+* `:tempids` - a map of temporary ids to entity ids
 
 ## Transaction report
 
 The transaction report is the return value of `transact`.  It is a map
 that contains:
 
-* `:db-before` -- the database value before the transaction
-* `:db-after` -- the database value after the transaction
-* `:tx-data` -- the datoms `[:e :a :v :tx :added]` produced by the
+* `:db-before` - the database value before the transaction
+* `:db-after` - the database value after the transaction
+* `:tx-data` - the datoms `[:e :a :v :tx :added]` produced by the
   transaction.  Note that this is different from the input `tx-data`.
-* `tempids` -- a map from temporary ids to resolved entity ids.
+* `tempids` - a map from temporary ids to resolved entity ids.
 
 ## Transducers
 
@@ -118,7 +120,15 @@ from the transaction context.
 
 ### assoc-tempid
 
-Associate all tempids with new entity ids.
+Associate all tempids with new entity ids.  Fail if a tempid is used in
+a `:retract` operation.
+
+### tx-instant
+
+If `:db/txInstant` is asserted on the transaction entity, check that the
+value lies between the `:db/txInstant` of the last transaction and the
+`:instant` value of the transaction context.  If none is asserted,
+create one.
 
 ### check-existing
 
@@ -141,17 +151,20 @@ Filter out all duplicate operations.
 
 Filter out all `:add` ops with a `:data-id`, as they are redundant.
 
+### exec-sql
+
+For a `:add` op, execute a `INSERT` query.  For a `:retract` op, update
+the `tr` field of the `:data-id` row to the `:t` value of the
+transaction context.
+
 ### TODO
 
 Additional processing steps to define transducers for:
 
-* Check any supplied value for :db/txInstant (newer than every existing
-  value, older than current time)
 * Generate missing install datoms for attributes
 * Check required schema entities: ident, valueType, cardinality
 * Handle schema alterations
 * Prevent unique byte attributes
-* Issue SQL and COMMIT
 * Return a transaction report
 * Prevent :db/add and :db/retract in same tx?
 
