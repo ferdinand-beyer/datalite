@@ -135,3 +135,10 @@
                          :val :foo/bar}
                         (rf tx {:e :foo/bar}))))))
 
+(deftest protect-system-test
+  (let [rf (protect-system conj)]
+    (is (= [{:e 100}]
+           (rf [] {:e 100})))
+    (is (thrown-info? {:db/error :db.error/modify-system-entity}
+                      (rf [] {:e sys/value-type})))))
+

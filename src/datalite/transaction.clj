@@ -163,6 +163,18 @@
        (let [[tx id] (resolve-id tx e)]
          (rf tx (assoc op :e id)))))))
 
+(defn protect-system
+  "Checks that the operation does not target a system entity."
+  [rf]
+  (fn
+    ([tx] (rf tx))
+    ([tx {:keys [e] :as op}]
+     (if (some? (schema/attrs schema/system-schema e))
+       (util/throw-error :db.error/modify-system-entity
+                         "cannot modify system entity"
+                         {:val e})
+       (rf tx op)))))
+
 (defn tx-report
   "Assembles a transaction report from a transaction
   structure."
