@@ -144,24 +144,24 @@
   (fn
     ([tx] (rf tx))
     ([tx op]
-     (let [[tx aid] (resolve-id tx (:a op))
-           attrs    (schema/attrs (db/schema (:db tx)) aid)]
+     (let [[tx id] (resolve-id tx (:a op))
+           attrs   (schema/attrs (db/schema (:db tx)) id)]
        (when-not (schema/attr? attrs)
          (util/throw-error :db.error/not-an-attribute
                            "supplied value is not an attribute"
                            {:val (:a op)}))
-       (rf tx (assoc op :aid aid :attr attrs))))))
+       (rf tx (assoc op :aid id :attr attrs))))))
 
-(defn resolve-entities
-  "Transducer resolving entity identifiers in e position."
+(defn resolve-entity
+  "Resolves the :e value of the op to an entity id, unless it is a tempid."
   [rf]
   (fn
     ([tx] (rf tx))
-    ([tx [op e a v :as form]]
+    ([tx {:keys [e] :as op}]
      (if (tempid? e)
-       (rf (update tx :tempids conj e) form)
+       (rf (update tx :tempids conj e) op)
        (let [[tx id] (resolve-id tx e)]
-         (rf tx [op id a v]))))))
+         (rf tx (assoc op :eid id)))))))
 
 (defn tx-report
   "Assembles a transaction report from a transaction

@@ -91,6 +91,9 @@
                :aid sys/ident
                :attr (sys-attr sys/ident)}]
              (:tx-data (rf tx {:a :db/ident})))))
+    (testing "resolved identifier is cached in tx"
+      (is (= {:db/ident sys/ident}
+             (:ids (rf tx {:a :db/ident})))))
     (testing "non-attribute entities are not accepted"
       (is (thrown-info?
             {:db/error :db.error/not-an-attribute
@@ -109,27 +112,27 @@
              :val :foo/bar}
             (rf tx {:a :foo/bar}))))))
 
-(deftest resolve-entities-test
+(deftest resolve-entity-test
   (let [conn (conn/connect)
         tx (@#'dt/transaction conn)
-        rf (@#'dt/resolve-entities collect-tx-data)]
-    (testing "e-value is replaced with resolved id"
-      (is (= [[:db/add sys/ident 2 3]]
-             (:tx-data (rf tx [:db/add :db/ident 2 3])))))
+        rf (@#'dt/resolve-entity collect-tx-data)]
+    (testing ":eid is stored in op"
+      (is (= [{:e :db/ident :eid sys/ident}]
+             (:tx-data (rf tx {:e :db/ident})))))
     (testing "resolved identifier is cached in tx"
       (is (= {:db/ident sys/ident}
-             (:ids (rf tx [:db/add :db/ident 2 3])))))
+             (:ids (rf tx {:e :db/ident})))))
     (testing "cache is used for resolution"
-      (is (= [[:db/add 42 2 3]]
+      (is (= [{:e :foo :eid 42}]
              (:tx-data (rf (update tx :ids assoc :foo 42)
-                           [:db/add :foo 2 3])))))
+                           {:e :foo})))))
     (testing "tempids are collected but left alone"
-      (is (= [[:db/add -1 2 3]]
-             (:tx-data (rf tx [:db/add -1 2 3]))))
+      (is (= [{:e -1}]
+             (:tx-data (rf tx {:e -1}))))
       (is (= #{-1}
-             (:tempids (rf tx [:db/add -1 2 3])))))
+             (:tempids (rf tx {:e -1})))))
     (testing "resolution failure raises exception"
       (is (thrown-info? {:db/error :db.error/not-an-entity
                          :val :foo/bar}
-                        (rf tx [:db/add :foo/bar 2 3]))))))
+                        (rf tx {:e :foo/bar}))))))
 
