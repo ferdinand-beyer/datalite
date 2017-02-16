@@ -153,8 +153,8 @@ Filter out all `:add` ops with a `:data-id`, as they are redundant.
 
 ### exec-sql
 
-For a `:add` op, execute a `INSERT` query.  For a `:retract` op, update
-the `tr` field of the `:data-id` row to the `:t` value of the
+For a `:add` op, execute a `INSERT` query.  For a `:retract` op,
+`UPDATE` the `tr` field of the `:data-id` row to the `:t` value of the
 transaction context.
 
 ### TODO
