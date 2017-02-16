@@ -142,3 +142,19 @@
     (is (thrown-info? {:db/error :db.error/modify-system-entity}
                       (rf [] {:e sys/value-type})))))
 
+(deftest resolve-ref-test
+  (let [conn (conn/connect)
+        tx (@#'dt/transaction conn)
+        rf (@#'dt/resolve-ref collect-tx-data)]
+    (testing "non-ref is left alone"
+      (let [op {:attr {sys/value-type sys/type-keyword}
+                :v 42}]
+        (is (= [op] (:tx-data (rf tx op))))))
+    (testing ":v is resolved for ref attr"
+      (let [attr {sys/value-type sys/type-ref}]
+        (is (= [{:v sys/cardinality-many
+                 :attr attr}]
+               (:tx-data (rf tx {:v :db.cardinality/many
+                                 :attr attr}))))))))
+
+

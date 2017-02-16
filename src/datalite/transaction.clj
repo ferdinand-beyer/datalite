@@ -175,6 +175,17 @@
                          {:val e})
        (rf tx op)))))
 
+(defn resolve-ref
+  "If the :attr has value-type 'ref', resolve the :v to an entity id."
+  [rf]
+  (fn
+    ([tx] (rf tx))
+    ([tx {:keys [v attr] :as op}]
+     (if (schema/ref? attr)
+       (let [[tx id] (resolve-id tx v)]
+         (rf tx (assoc op :v id)))
+       (rf tx op)))))
+
 (defn tx-report
   "Assembles a transaction report from a transaction
   structure."
