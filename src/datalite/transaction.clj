@@ -189,9 +189,10 @@
 (def process-tx-data
   (comp
     analyze-form
-    reverse-refs
-    resolve-attributes
-    resolve-entities))
+    reverse-attr
+    resolve-attr
+    resolve-entity
+    protect-system))
 
 (defn transact
   [conn tx-data]
