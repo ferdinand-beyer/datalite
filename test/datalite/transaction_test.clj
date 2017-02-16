@@ -24,45 +24,59 @@
     (is (= sys/ident
            (db/resolve-id db (->DbId :db.part/db sys/ident))))))
 
-(deftest map-forms-to-list-forms-test
-  (let [rf (@#'dt/expand-map-forms conj)]
-    (is (= [:result] (rf [:result])))
-    (is (= [[:db/add 1 2 3]]
-           (rf [] [:db/add 1 2 3])))
-    (is (= #{[:db/add 42 :a 1] [:db/add 42 :b 2]}
-           (rf #{} {:db/id 42, :a 1, :b 2})))
-    (is (= #{[:db/add :a 1] [:db/add :b 2]}
-           (set (map (fn [[op e a v]] [op a v])
-                     (rf [] {:a 1, :b 2})))))))
-
-(deftest reversed-ref-attr-test
-  (let [rf (@#'dt/reverse-refs conj)]
-    (is (= [:result] (rf [:result])))
-    (is (= [[:db/add 1 :x/y 2]]
-           (rf [] [:db/add 1 :x/y 2])))
-    (is (= [[:db/add 1 :x/y 2]]
-           (rf [] [:db/add 2 :x/_y 1])))
-    (is (= [[:db/add 1 :x/_y 2]]
-           (rf [] [:db/add 2 :x/__y 1])))))
-
-(deftest check-base-ops-test
-  (let [rf (@#'dt/check-base-ops conj)]
-    (is (= [:result] (rf [:result])))
-    (is (= [[:db/add 1 :x/y 2]]
-           (rf [] [:db/add 1 :x/y 2])))
-    (is (= [[:db/retract 1 :x/y 2]]
-           (rf [] [:db/retract 1 :x/y 2])))
-    (is (= [[:db/add 1 :x/y 2]]
-           (rf [] '(:db/add 1 :x/y 2))))
-    (is (vector? (first (rf [] '(:db/add 1 :x/y 2)))))
-    (is (thrown-info? {:db/error :db.error/invalid-tx-op}
+(deftest analyze-atomic-op-test
+  (let [rf (@#'dt/analyze-form conj)]
+    (let [form [:db/add 1 2 3]]
+      (is (= [{:op :add :form form :e 1 :a 2 :v 3}]
+             (rf [] form))))
+    (let [form [:db/retract 33 32 31]]
+      (is (= [{:op :retract :form form :e 33 :a 32 :v 31}]
+             (rf [] form))))
+    (let [form (list :db/add 1 2 3)]
+      (is (= [{:op :add :form form :e 1 :a 2 :v 3}]
+             (rf [] form))))
+    (let [form (list :db/retract 33 32 31)]
+      (is (= [{:op :retract :form form :e 33 :a 32 :v 31}]
+             (rf [] form))))
+    (is (thrown-info? {:db/error :db.error/invalid-tx-form}
+                      (rf [] [:db/unknown 1 2 3])))
+    (is (thrown-info? {:db/error :db.error/invalid-tx-form}
+                      (rf [] [:db/add])))
+    (is (thrown-info? {:db/error :db.error/invalid-tx-form}
+                      (rf [] [:db/add 1 2 3 4])))
+    (is (thrown-info? {:db/error :db.error/invalid-tx-form}
+                      (rf [] [:db/retract 1 2])))
+    (is (thrown-info? {:db/error :db.error/invalid-tx-form}
+                      (rf [] [:db/retract 1 2 3 4])))
+    (is (thrown-info? {:db/error :db.error/invalid-tx-form}
                       (rf [] [])))
-    (is (thrown-info? {:db/error :db.error/invalid-tx-op}
-                      (rf [] [:db/add 1 :x/y])))
-    (is (thrown-info? {:db/error :db.error/invalid-tx-op}
-                      (rf [] [:db/add 1 :x/y 2 :too-many])))
-    (is (thrown-info? {:db/error :db.error/invalid-tx-op}
-                      (rf [] [:db/unknownOp 1 :x/y 2])))))
+    (is (thrown-info? {:db/error :db.error/invalid-tx-form}
+                      (rf [] true)))
+    (is (thrown-info? {:db/error :db.error/invalid-tx-form}
+                      (rf [] :db/add)))
+    (is (thrown-info? {:db/error :db.error/invalid-tx-form}
+                      (rf [] #{:db/add})))))
+
+(deftest analyze-map-forms-test
+  (let [rf (@#'dt/analyze-form conj)]
+    (let [form {:db/id 42, :a 1, :b 2}]
+      (is (= #{{:op :add :form form :e 42 :a :a :v 1}
+               {:op :add :form form :e 42 :a :b :v 2}}
+             (rf #{} form))))
+    (let [form {:a 1, :b 2}]
+      (is (= #{{:op :add :form form :a :a :v 1}
+               {:op :add :form form :a :b :v 2}}
+             (into #{} (map #(dissoc % :e) (rf [] form))))))))
+
+(deftest reverse-attr-test
+  (let [rf (@#'dt/reverse-attr conj)]
+    (is (= [:result] (rf [:result])))
+    (is (= [{:e 1 :a :x/y :v 2}]
+           (rf [] {:e 1 :a :x/y :v 2})))
+    (is (= [{:e 1 :a :x/y :v 2}]
+           (rf [] {:e 2 :a :x/_y :v 1})))
+    (is (= [{:e 1 :a :x/_y :v 2}]
+           (rf [] {:e 2 :a :x/__y :v 1})))))
 
 (deftest resolve-attributes-test
   (let [conn (conn/connect)

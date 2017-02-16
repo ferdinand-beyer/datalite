@@ -47,11 +47,10 @@
 
 (defn tempid?
   [id]
-  (or (string? id)
-      (and (instance? DbId id)
-           (neg? (.t ^DbId id)))
-      (and (integer? id)
-           (neg? id))))
+  (cond
+    (instance? DbId id) (neg? (.t ^DbId id))
+    (integer? id) (neg? id)
+    :else (string? id)))
 
 ;;;; Transaction data
 
@@ -85,62 +84,53 @@
 
 ;;;; Transaction data transducers
 
-(defn invoke-transaction-fns
-  "Transducer invoking transaction functions."
-  [rf]
-  (fn
-    ([tx] (rf tx))
-    ([tx form]
-     ; TODO: if list form (sequential?), and first value
-     ; is neither :db/add nor :db/retract, look up function,
-     ; check, call and recur for every returned form.
-     (rf tx form))))
+(defn- throw-invalid-form
+  [form]
+  (util/throw-error :db.error/invalid-tx-form
+                    "not a valid tx-data form"
+                    {:val form}))
 
-(defn- map-form-e
-  "Determine the entity id of a map structure."
+(defn- map-form-entity-id
   [tx m]
   (if-let [e (:db/id m)]
     [tx (dissoc m :db/id) e]
     [tx m (next-auto-tempid)]))
 
-(defn expand-map-forms
-  "Transducer expanding map forms to list forms."
+(defn- atomic-op
+  [op form]
+  (if (= 4 (count form))
+    (let [[_ e a v] form]
+      {:op op :form form :e e :a a :v v})
+    (throw-invalid-form form)))
+
+(defn analyze-form
   [rf]
   (fn
     ([tx] (rf tx))
     ([tx form]
      (if (map? form)
-       (let [[tx m e] (map-form-e tx form)]
+       (let [[tx m e] (map-form-entity-id tx form)]
          (reduce-kv (fn [tx a v]
-                      (rf tx [:db/add e a v]))
+                      (rf tx {:op :add :form form :e e :a a :v v}))
                     tx m))
-       (rf tx form)))))
+       (if (and (sequential? form) (seq form))
+         (case (first form)
+           :db/add (rf tx (atomic-op :add form))
+           :db/retract (rf tx (atomic-op :retract form))
+           (throw-invalid-form form))
+         (throw-invalid-form form))))))
 
-(defn check-base-ops
-  "Transducer checking list forms of a basic
-  operation: [(:db/add | :db/retract) e a v]."
-  [rf]
-  (fn
-    ([tx] (rf tx))
-    ([tx form]
-     (if (and (sequential? form)
-              (= 4 (count form))
-              (#{:db/add :db/retract} (first form)))
-       (rf tx (vec form))
-       (util/throw-error :db.error/invalid-tx-op
-                         "not a valid transaction operation"
-                         {:val form})))))
-
-(defn reverse-refs
+(defn reverse-attr
   "Transducer resolving reverse attribute references."
   [rf]
   (fn
     ([tx] (rf tx))
-    ([tx [op e a v :as form]]
+    ([tx {:keys [e a v] :as form}]
      (if (and (keyword? a)
               (str/starts-with? (name a) "_"))
-       (rf tx [op v (keyword (namespace a)
-                             (subs (name a) 1)) e])
+       (rf tx (merge form {:e v :v e
+                           :a (keyword (namespace a)
+                                       (subs (name a) 1))}))
        (rf tx form)))))
 
 (defn resolve-attributes
@@ -180,9 +170,7 @@
 
 (def process-tx-data
   (comp
-    invoke-transaction-fns
-    expand-map-forms
-    check-base-ops
+    analyze-form
     reverse-refs
     resolve-attributes
     resolve-entities))
