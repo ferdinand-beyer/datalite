@@ -38,31 +38,24 @@ transformation steps required to analyze and process `tx-data`.  Each
 transducer returns a reduct function that operates on the _transaction
 context_.
 
-### op
+### analyze-form
 
 Transforms forms to _transaction operation_ maps.  A transaction
 operation captures all information we have about an operation at a given
-point in time.  Initially, this contains:
+point in time. The maps will contain:
 
-* `:op` -- one of `:add`, `:retract`, `:add-map`, or `:fn`.
-* `:form` -- the original form
+* `:op` - one of `:add` or `:retract`
+* `:form` - the original form
+* `:e`
+* `:a`
+* `:v`
 
-### invoke-fn
+The transformation is involves the following substeps:
 
-Acts on `:fn` operations.  Recursively resolves and invokes database
-functions, passing the `:db` of the transaction context, until no more
-`:fn` operations remain.
-
-### expand-map
-
-Expands `:add-map` operations to `:add` operations, assigning tempids to
-them.
-
-### atomic-op
-
-Only accepts `:add` and `:retract` ops with a `:form` that matches
-`[:op :e :a :v]`.  Extracts the `:e`, `:a` and `:v` keys into the
-operation map.
+* Map forms are expanded to `:add` operations, with tempids for `:e`
+  unless a `:db/id` key is given.
+* Database functions are invoked recursively until all returned forms
+  are reduced to `:add` and `:retract`.
 
 ### reverse-attr
 
