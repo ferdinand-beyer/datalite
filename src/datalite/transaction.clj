@@ -121,30 +121,36 @@
          (throw-invalid-form form))))))
 
 (defn reverse-attr
-  "Transducer resolving reverse attribute references."
+  "For 'reverse attributes' that are keywords with names starting
+  with an underscore, reverse the association: [:e :ns/_ref :v]
+  becomes [:v :ns/ref :e]."
   [rf]
   (fn
     ([tx] (rf tx))
-    ([tx {:keys [e a v] :as form}]
+    ([tx {:keys [e a v] :as op}]
      (if (and (keyword? a)
               (str/starts-with? (name a) "_"))
-       (rf tx (merge form {:e v :v e
-                           :a (keyword (namespace a)
-                                       (subs (name a) 1))}))
-       (rf tx form)))))
+       (rf tx (merge op {:e v :v e
+                         :a (keyword (namespace a)
+                                     (subs (name a) 1))}))
+       (rf tx op)))))
 
-(defn resolve-attributes
-  "Transducer resolving attributes."
+(defn resolve-attr
+  "Resolves the :a value of the op to an entity id, and makes sure that
+  it actually is a installed schema attribute.  Stores the attribute
+  properties from the schema as :attr in op, so that subsequent steps
+  can analyze ops based on the schema."
   [rf]
   (fn
     ([tx] (rf tx))
-    ([tx [op e a v :as form]]
-     (let [[tx aid] (resolve-id tx a)]
-       (when-not (schema/attr? (db/schema (:db tx)) aid)
+    ([tx op]
+     (let [[tx aid] (resolve-id tx (:a op))
+           attrs    (schema/attrs (db/schema (:db tx)) aid)]
+       (when-not (schema/attr? attrs)
          (util/throw-error :db.error/not-an-attribute
                            "supplied value is not an attribute"
-                           {:val a}))
-       (rf tx [op e aid v])))))
+                           {:val (:a op)}))
+       (rf tx (assoc op :aid aid :attr attrs))))))
 
 (defn resolve-entities
   "Transducer resolving entity identifiers in e position."

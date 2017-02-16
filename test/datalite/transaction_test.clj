@@ -78,33 +78,36 @@
     (is (= [{:e 1 :a :x/_y :v 2}]
            (rf [] {:e 2 :a :x/__y :v 1})))))
 
-(deftest resolve-attributes-test
+(defn sys-attr
+  [aid]
+  (schema/attrs schema/system-schema aid))
+
+(deftest resolve-attr-test
   (let [conn (conn/connect)
         tx (@#'dt/transaction conn)
-        rf (@#'dt/resolve-attributes collect-tx-data)]
-    (testing "a-value is replaced with resolved id"
-      (is (= [[:db/add "foo" sys/ident :foo]]
-             (:tx-data (rf tx [:db/add "foo" :db/ident :foo])))))
-    (testing "resolved identifier is cached in tx"
-      (is (= {:db/ident sys/ident}
-             (:ids (rf tx [:db/add "foo" :db/ident :foo])))))
+        rf (@#'dt/resolve-attr collect-tx-data)]
+    (testing ":aid is stored in op"
+      (is (= [{:a :db/ident
+               :aid sys/ident
+               :attr (sys-attr sys/ident)}]
+             (:tx-data (rf tx {:a :db/ident})))))
     (testing "non-attribute entities are not accepted"
       (is (thrown-info?
             {:db/error :db.error/not-an-attribute
              :val :db.type/ref}
-            (rf tx [:db/add 1 :db.type/ref 3]))))
+            (rf tx {:a :db.type/ref}))))
     (testing "tempids are not accepted"
       (is (thrown-info?
             {:db/error :db.error/not-an-entity
              :val -1}
-            (rf tx [:db/add 1 -1 3])))
+            (rf tx {:a -1})))
       (is (thrown? IllegalArgumentException
                    (rf tx [:db/add 1 "attr" 3]))))
     (testing "resolution failure raises exception"
       (is (thrown-info?
             {:db/error :db.error/not-an-entity
              :val :foo/bar}
-            (rf tx [:db/add 1 :foo/bar 3]))))))
+            (rf tx {:a :foo/bar}))))))
 
 (deftest resolve-entities-test
   (let [conn (conn/connect)
