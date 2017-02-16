@@ -86,9 +86,8 @@
   (let [conn (conn/connect)
         tx (@#'dt/transaction conn)
         rf (@#'dt/resolve-attr collect-tx-data)]
-    (testing ":aid is stored in op"
-      (is (= [{:a :db/ident
-               :aid sys/ident
+    (testing ":a is replaced with resolved id"
+      (is (= [{:a sys/ident
                :attr (sys-attr sys/ident)}]
              (:tx-data (rf tx {:a :db/ident})))))
     (testing "resolved identifier is cached in tx"
@@ -116,14 +115,14 @@
   (let [conn (conn/connect)
         tx (@#'dt/transaction conn)
         rf (@#'dt/resolve-entity collect-tx-data)]
-    (testing ":eid is stored in op"
-      (is (= [{:e :db/ident :eid sys/ident}]
+    (testing ":e is replaced with resolved id"
+      (is (= [{:e sys/ident}]
              (:tx-data (rf tx {:e :db/ident})))))
     (testing "resolved identifier is cached in tx"
       (is (= {:db/ident sys/ident}
              (:ids (rf tx {:e :db/ident})))))
     (testing "cache is used for resolution"
-      (is (= [{:e :foo :eid 42}]
+      (is (= [{:e 42}]
              (:tx-data (rf (update tx :ids assoc :foo 42)
                            {:e :foo})))))
     (testing "tempids are collected but left alone"

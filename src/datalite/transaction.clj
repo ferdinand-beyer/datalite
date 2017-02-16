@@ -150,7 +150,7 @@
          (util/throw-error :db.error/not-an-attribute
                            "supplied value is not an attribute"
                            {:val (:a op)}))
-       (rf tx (assoc op :aid id :attr attrs))))))
+       (rf tx (assoc op :a id :attr attrs))))))
 
 (defn resolve-entity
   "Resolves the :e value of the op to an entity id, unless it is a tempid."
@@ -161,7 +161,7 @@
      (if (tempid? e)
        (rf (update tx :tempids conj e) op)
        (let [[tx id] (resolve-id tx e)]
-         (rf tx (assoc op :eid id)))))))
+         (rf tx (assoc op :e id)))))))
 
 (defn tx-report
   "Assembles a transaction report from a transaction
