@@ -22,6 +22,7 @@
         " t INTEGER NOT NULL"
         ")")
    (str "CREATE TABLE data ("
+        " d INTEGER NOT NULL PRIMARY KEY,"
         " e INTEGER NOT NULL,"
         " a INTEGER NOT NULL,"
         " v NOT NULL,"
