@@ -160,6 +160,7 @@ Additional processing steps to define transducers for:
 * Prevent unique byte attributes
 * Return a transaction report
 * Prevent :db/add and :db/retract in same tx?
+* Update sequence numbers
 
 ## Transducer switches
 
