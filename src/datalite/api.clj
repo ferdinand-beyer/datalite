@@ -2,7 +2,8 @@
   (:refer-clojure :exclude [filter])
   (:require [datalite.connection :as conn]
             [datalite.database :as db]
-            [datalite.entity :as ent]))
+            [datalite.entity :as ent]
+            [datalite.schema :as schema]))
 
 ; TODO: Decide for each API function whether to support it, and
 ; give a reason if not/never.
@@ -12,7 +13,18 @@
 ;(def add-listener)
 (def as-of)
 (def as-of-t)
-(def attribute)
+
+(defn attribute
+  "Returns information about the attribute with the given id or ident.
+  Supports ILookup interface for key-based access. Supported keys are:
+
+  :id, :ident, :cardinality, :value-type, :unique, :indexed, :has-avet,
+  :no-history, :is-component, :fulltext"
+  [db attrid]
+  (let [schema (db/schema db)
+        id (db/resolve-id db attrid)]
+    (schema/attr-info schema id)))
+
 (def basis-t)
 (def close conn/close)
 (def connect conn/connect)
