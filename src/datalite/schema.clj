@@ -84,7 +84,7 @@
   "Returns true if the entity identified by eid is
   an attribute."
   [attrs]
-  (every? (set (keys attrs)) attr-keys))
+  (every? (partial contains? attrs) attr-keys))
 
 (defn attr-info
   "Returns information about the attribute with the given id.
