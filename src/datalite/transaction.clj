@@ -61,7 +61,6 @@
         t (db/basis-t db)]
     {:db db
      :conn conn
-     :basis-t t
      :t (inc t)
      :tx (id/eid sys/part-tx t)
      :ids {}
@@ -91,6 +90,7 @@
                     {:val form}))
 
 (defn- map-form-entity-id
+  "Return the entity-id for map form m."
   [tx m]
   (if-let [e (:db/id m)]
     [tx (dissoc m :db/id) e]
@@ -108,17 +108,24 @@
   (fn
     ([tx] (rf tx))
     ([tx form]
-     (if (map? form)
+     (cond
+       ;; Transform maps into add ops.
+       (map? form)
        (let [[tx m e] (map-form-entity-id tx form)]
          (reduce-kv (fn [tx a v]
                       (rf tx {:op :add :form form :e e :a a :v v}))
                     tx m))
-       (if (and (sequential? form) (seq form))
-         (case (first form)
-           :db/add (rf tx (atomic-op :add form))
-           :db/retract (rf tx (atomic-op :retract form))
-           (throw-invalid-form form))
-         (throw-invalid-form form))))))
+
+       ;; Transform non-empty sequence forms into ops.
+       (and (sequential? form) (seq form))
+       (case (first form)
+         :db/add (rf tx (atomic-op :add form))
+         :db/retract (rf tx (atomic-op :retract form))
+         ; TODO: Resolve/call functions!
+         (throw-invalid-form form))
+
+       :else
+       (throw-invalid-form form)))))
 
 (defn reverse-attr
   "For 'reverse attributes' that are keywords with names starting
