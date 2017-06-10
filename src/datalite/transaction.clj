@@ -170,6 +170,8 @@
        (let [[tx id] (resolve-id tx e)]
          (rf tx (assoc op :e id)))))))
 
+; TODO: Some operations are allowed, in particular adding :db.install/attribute
+; to :db.part/db!
 (defn protect-system
   "Checks that the operation does not target a system entity."
   [rf]
@@ -193,16 +195,22 @@
          (rf tx (assoc op :v id)))
        (rf tx op)))))
 
+(defn collect-ops
+  ([tx] tx)
+  ([tx op]
+   (update tx :ops conj op)))
+
+(defn op->datom
+  [tx-id op]
+  [(:e op) (:a op) (:v op) tx-id (= :add (:op op))])
+
 (defn tx-report
-  "Assembles a transaction report from a transaction
-  structure."
-  ([tx]
-   {:db-before (:db tx)
-    :db-after (db/db (:conn tx))
-    :tx-data (:datoms tx)
-    :tempids nil})
-  ([tx [op e a v]]
-   (update tx :datoms conj [e a v (:tx tx) (= :db/add op)])))
+  "Assembles a transaction report."
+  [tx]
+  {:db-before (:db tx)
+   :db-after (db/db (:conn tx))
+   :tx-data (mapv (partial op->datom (:tx-id tx)) (:ops tx))
+   :tempids nil})
 
 (def process-tx-data
   (comp
@@ -210,14 +218,26 @@
     reverse-attr
     resolve-attr
     resolve-entity
-    protect-system))
+    #_protect-system))
 
 (defn transact
   [conn tx-data]
   (sql/with-tx
     (conn/sql-con conn)
-    (transduce process-tx-data
-               tx-report
-               (transaction conn)
-               tx-data)))
+    (let [tx (transduce process-tx-data
+                        collect-ops
+                        (transaction conn)
+                        tx-data)]
+      (tx-report tx))))
 
+(comment
+  (let [conn   (conn/connect)
+        temp   (tempid :db.part/db)
+        report (transact
+                 conn
+                 [[:db/add temp :db/ident :test/string-value]
+                  [:db/add temp :db/valueType :db.type/string]
+                  [:db/add temp :db/cardinality :db.cardinality/one]
+                  [:db/add :db.part/db :db.install/attribute temp]])]
+    (println report))
+  )

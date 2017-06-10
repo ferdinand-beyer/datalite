@@ -158,3 +158,20 @@
                                  :attr attr}))))))))
 
 
+;;;; Integration tests
+
+
+(deftest ^:integration transact-test
+  (let [conn (conn/connect)]
+
+    (testing "transact a fully specified attribute"
+      (let [temp   (tempid :db.part/db)
+            report (transact
+                     conn
+                     [[:db/add temp :db/ident :test/string-value]
+                      [:db/add temp :db/valueType :db.type/string]
+                      [:db/add temp :db/cardinality :db.cardinality/one]
+                      [:db/add :db.part/db :db.install/attribute temp]])]
+        (is (some? (:db-before report)))
+        ))))
+
