@@ -18,6 +18,10 @@
 
 (deftype DbId [part t])
 
+(defmethod print-method DbId
+  [^DbId id ^java.io.Writer w]
+  (.write w (str "#db/id" [(.part id) (.t id)])))
+
 (defn entity-id
   "Turns db-id into an integer entity id."
   [db ^DbId db-id]
@@ -239,5 +243,5 @@
                   [:db/add temp :db/valueType :db.type/string]
                   [:db/add temp :db/cardinality :db.cardinality/one]
                   [:db/add :db.part/db :db.install/attribute temp]])]
-    (println report))
+    (println (:tx-data report)))
   )
