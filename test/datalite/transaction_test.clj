@@ -62,11 +62,7 @@
     (let [form {:db/id 42, :a 1, :b 2}]
       (is (= #{{:op :add :form form :e 42 :a :a :v 1}
                {:op :add :form form :e 42 :a :b :v 2}}
-             (rf #{} form))))
-    (let [form {:a 1, :b 2}]
-      (is (= #{{:op :add :form form :a :a :v 1}
-               {:op :add :form form :a :b :v 2}}
-             (into #{} (map #(dissoc % :e) (rf [] form))))))))
+             (rf #{} form))))))
 
 (deftest reverse-attr-test
   (let [rf (@#'dt/reverse-attr conj)]
