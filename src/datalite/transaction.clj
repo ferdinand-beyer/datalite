@@ -9,11 +9,14 @@
             [clojure.string :as str])
   (:import [java.util Date]))
 
-;;;; Tempids
+
+
+;;;; TEMPORARY IDS
 
 (def ^:private auto-tempid (atom -1000000))
 
 (defn- next-auto-tempid
+  "Returns a unique temporary id."
   []
   (swap! auto-tempid dec))
 
@@ -57,7 +60,9 @@
     (integer? id) (neg? id)
     :else (string? id)))
 
-;;;; Transaction
+
+
+;;;; TRANSACTION
 
 (defn- current-t
   "Returns the current t counter values."
@@ -90,7 +95,9 @@
                           "could not resolve entity identifier"
                           {:val id}))))
 
-;;;; Transaction data transducers
+
+
+;;;; TRANSACTION OPERATIONS
 
 (defn- throw-invalid-form
   [form]
@@ -210,6 +217,10 @@
   ([tx op]
    (update tx :ops conj op)))
 
+
+
+;;;; TRANSACTION REPORT
+
 (defn op->datom
   [tx-id op]
   [(:e op) (:a op) (:v op) tx-id (= :add (:op op))])
@@ -221,6 +232,10 @@
    :db-after (db/db (:conn tx))
    :tx-data (mapv (partial op->datom (:tx-id tx)) (:ops tx))
    :tempids (select-keys (:ids tx) (:tempids tx))})
+
+
+
+;;;; TRANSACT
 
 (def process-tx-data
   (comp
@@ -239,6 +254,8 @@
                         (transaction conn)
                         tx-data)]
       (tx-report tx))))
+
+
 
 (comment
   (let [conn   (conn/connect)
