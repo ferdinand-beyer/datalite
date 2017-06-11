@@ -6,7 +6,8 @@
             [datalite.system :as sys]
             [datalite.sql :as sql]
             [datalite.util :as util]
-            [clojure.string :as str]))
+            [clojure.string :as str])
+  (:import [java.util Date]))
 
 ;;;; Tempids
 
@@ -56,23 +57,27 @@
     (integer? id) (neg? id)
     :else (string? id)))
 
-;;;; Transaction data
+;;;; Transaction
+
+(defn- current-t
+  "Returns the current t counter values."
+  [conn]
+  (sql/query-first (conn/sql-con conn) "SELECT t, s FROM head LIMIT 1"))
 
 (defn transaction
-  "Creates an accumulator structure for a transaction."
+  "Creates a transaction map."
   [conn]
-  (let [db (db/db conn)
-        t (db/basis-t db)]
-    {:db db
-     :conn conn
+  (let [[t system-t] (current-t conn)
+        db           (db/db conn t)]
+    {:conn conn
+     :db db
      :t (inc t)
-     :tx (id/eid sys/part-tx t)
+     :tx-id (id/eid sys/part-tx t)
+     :auto-temp-id @auto-tempid         ; To generate local unique temp ids
+     :instant (Date.)
      :ids {}
      :tempids #{}
-     :datoms []
      :ops []}))
-
-;;;; Entity id resolution
 
 (defn- resolve-id
   "Resolve id and cache the result in tx."
@@ -98,7 +103,8 @@
   [tx m]
   (if-let [e (:db/id m)]
     [tx (dissoc m :db/id) e]
-    [tx m (next-auto-tempid)]))
+    (let [temp-id (dec (:auto-temp-id tx))]
+      [(assoc tx :auto-temp-id temp-id) m temp-id])))
 
 (defn- atomic-op
   [op form]
@@ -214,7 +220,7 @@
   {:db-before (:db tx)
    :db-after (db/db (:conn tx))
    :tx-data (mapv (partial op->datom (:tx-id tx)) (:ops tx))
-   :tempids nil})
+   :tempids (select-keys (:ids tx) (:tempids tx))})
 
 (def process-tx-data
   (comp
@@ -236,12 +242,22 @@
 
 (comment
   (let [conn   (conn/connect)
-        temp   (tempid :db.part/db)
+        temp   (tempid :db.part/db -1)
         report (transact
                  conn
                  [[:db/add temp :db/ident :test/string-value]
                   [:db/add temp :db/valueType :db.type/string]
                   [:db/add temp :db/cardinality :db.cardinality/one]
                   [:db/add :db.part/db :db.install/attribute temp]])]
+    (println (:tempids report))
+    (println (:tx-data report)))
+
+  (let [conn   (conn/connect)
+        report (transact
+                 conn
+                 [{:db/ident :test/string-value
+                  :db/valueType :db.type/string
+                  :db/cardinality :db.cardinality/one
+                  :db.install/_attribute :db.part/db}])]
     (println (:tx-data report)))
   )
