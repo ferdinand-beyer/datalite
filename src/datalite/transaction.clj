@@ -82,6 +82,7 @@
      :instant (Date.)
      :ids {}
      :tempids #{}
+     :entities {}
      :ops []}))
 
 (defn- resolve-id
@@ -94,6 +95,11 @@
         (util/throw-error :db.error/not-an-entity
                           "could not resolve entity identifier"
                           {:val id}))))
+
+(defn- unique-temp-id
+  [tx]
+  (let [temp-id (dec (:auto-temp-id tx))]
+    [(assoc tx :auto-temp-id temp-id) temp-id]))
 
 
 
@@ -110,8 +116,8 @@
   [tx m]
   (if-let [e (:db/id m)]
     [tx (dissoc m :db/id) e]
-    (let [temp-id (dec (:auto-temp-id tx))]
-      [(assoc tx :auto-temp-id temp-id) m temp-id])))
+    (let [[tx e] (unique-temp-id tx)]
+      [tx m e])))
 
 (defn- atomic-op
   [op form]
@@ -218,7 +224,6 @@
    (update tx :ops conj op)))
 
 
-
 ;;;; TRANSACTION REPORT
 
 (defn op->datom
@@ -237,7 +242,12 @@
 
 ;;;; TRANSACT
 
-(def process-tx-data
+(defn- collect-ops
+  ([tx] tx)
+  ([tx op]
+   (update tx :ops conj op)))
+
+(def ^:private analyze-tx-data-xform
   (comp
     analyze-form
     reverse-attr
@@ -245,14 +255,30 @@
     resolve-entity
     #_protect-system))
 
+(defn- analyze-tx-data
+  [tx tx-data]
+  (transduce analyze-tx-data-xform collect-ops tx tx-data))
+
+(defn- analyze-entities
+  [tx]
+  tx)
+
+(defn- process-ops
+  [tx]
+  tx)
+
+(defn- exec-ops!
+  [tx])
+
 (defn transact
   [conn tx-data]
   (sql/with-tx
     (conn/sql-con conn)
-    (let [tx (transduce process-tx-data
-                        collect-ops
-                        (transaction conn)
-                        tx-data)]
+    (let [tx (-> (transaction conn)
+                 (analyze-tx-data tx-data)
+                 analyze-entities
+                 process-ops)]
+      (exec-ops! tx)
       (tx-report tx))))
 
 
