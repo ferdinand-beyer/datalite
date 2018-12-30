@@ -3,6 +3,7 @@
             [clojure.pprint :refer [pprint]]
             [clojure.reflect :refer [reflect]]
             [clojure.repl :refer [apropos dir doc find-doc pst source]]
+            [clojure.test :refer [run-all-tests]]
             [clojure.test.check :as tc]
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
@@ -35,3 +36,5 @@
   (stop)
   (refresh :after 'user/start))
 
+(defn test-all []
+  (run-all-tests #"datalite\..*"))
